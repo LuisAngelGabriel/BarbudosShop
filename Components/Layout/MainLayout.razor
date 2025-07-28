@@ -1,23 +1,67 @@
 ﻿@inherits LayoutComponentBase
 
-<div class="page">
-    <div class="sidebar">
-        <NavMenu />
-    </div>
+<nav class="navbar navbar-expand-lg navbar-light bg-light">
+    <div class="container px-4 px-lg-5">
+        <a class="navbar-brand me-auto" href="/">
+            <img src="/barbudos.png" alt="Logo Barbudos Shop" height="80" /> 
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
+                aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
+            <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarSupportedContent">
+            <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
+                <li class="nav-item"><NavLink class="nav-link" href="/" Match="NavLinkMatch.All">Inicio</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="/contact">Contacto</NavLink></li>
+                <li class="nav-item dropdown">
+                    <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button"
+                       data-bs-toggle="dropdown" aria-expanded="false">Productos</a>
+                    <ul class="dropdown-menu" aria-labelledby="navbarDropdown">
+                        <li><NavLink class="dropdown-item" href="/products">Todos los Productos</NavLink></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><NavLink class="dropdown-item" href="/shaving">Afeitado</NavLink></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><NavLink class="dropdown-item" href="/grooming">Cuidado y Estética</NavLink></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><NavLink class="dropdown-item" href="/treatments">Tratamientos</NavLink></li>
+                        <li><hr class="dropdown-divider" /></li>
+                        <li><NavLink class="dropdown-item" href="/apparel">Indumentaria</NavLink></li>
+                    </ul>
+                </li>
+            </ul>
+            <form class="d-flex align-items-center">
+                <div class="input-search-wrapper">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="11" cy="11" r="7"></circle>
+                        <line x1="21" y1="21" x2="16.65" y2="16.65"></line>
+                    </svg>
+                    <input type="search" placeholder="Buscar productos..." aria-label="Buscar productos" />
+                </div>
 
-    <main>
-        <div class="top-row px-4">
-            <a href="https://learn.microsoft.com/aspnet/core/" target="_blank">About</a>
+                <button class="btn btn-outline-primary me-2" type="button">
+                    <i class="bi-person-plus-fill me-1"></i>
+                    Mi Cuenta
+                </button>
+
+                <button class="btn btn-outline-dark" type="button">
+                    <i class="bi-cart-fill me-1"></i>
+                    Carrito
+                    <span class="badge bg-dark text-white ms-1 rounded-pill">0</span>
+                </button>
+            </form>
         </div>
+    </div>
+</nav>
 
-        <article class="content px-4">
-            @Body
-        </article>
-    </main>
-</div>
+<hr class="my-0" style="border-top: 2px solid #000;" />
 
-<div id="blazor-error-ui" data-nosnippet>
-    An unhandled error has occurred.
-    <a href="." class="reload">Reload</a>
-    <span class="dismiss">🗙</span>
-</div>
+
+<main class="container my-4">
+    @Body
+</main>
+
+<footer class="py-5 bg-dark mt-auto">
+    <div class="container">
+        <p class="m-0 text-center text-white">Copyright &copy; Your Website 2025</p>
+    </div>
+</footer>
