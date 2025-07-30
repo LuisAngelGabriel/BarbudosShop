@@ -5,7 +5,7 @@
 @using System.Text.Encodings.Web
 @using Microsoft.AspNetCore.Identity
 @using Microsoft.AspNetCore.WebUtilities
-@using BarbudosShop.Data
+@using BarbudosShop.Data 
 
 @inject UserManager<ApplicationUser> UserManager
 @inject IUserStore<ApplicationUser> UserStore
@@ -15,47 +15,62 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Register</PageTitle>
+<PageTitle>Registrarse</PageTitle>
 
-<h1>Register</h1>
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="card shadow-lg border-0 rounded-lg mt-5">
+                <div class="card-header bg-dark text-white text-center py-4">
+                    <h3 class="fw-bold my-0">Registrarse</h3> 
+                </div>
+                <div class="card-body p-4">
+                    <h5 class="text-center mb-4 text-muted">Crea tu nueva cuenta</h5>
 
-<div class="row">
-    <div class="col-lg-6">
-        <StatusMessage Message="@Message" />
-        <EditForm Model="Input" asp-route-returnUrl="@ReturnUrl" method="post" OnValidSubmit="RegisterUser" FormName="register">
-            <DataAnnotationsValidator />
-            <h2>Create a new account.</h2>
-            <hr />
-            <ValidationSummary class="text-danger" role="alert" />
-            <div class="form-floating mb-3">
-                <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                <label for="Input.Email">Email</label>
-                <ValidationMessage For="() => Input.Email" class="text-danger" />
+                    <EditForm Model="Input" OnValidSubmit="RegistrarUsuario" FormName="register">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger text-center mb-3" role="alert" />
+
+                        <div class="form-floating mb-3">
+                            <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control rounded-pill" autocomplete="username" aria-required="true" placeholder="nombre@ejemplo.com" />
+                            <label for="Input.Email"><i class="bi bi-envelope-fill me-2"></i>Correo Electrónico</label>
+                            <ValidationMessage For="() => Input.Email" class="text-danger" />
+                        </div>
+                        <div class="form-floating mb-3">
+                            <InputText type="password" @bind-Value="Input.Contrasena" id="Input.Contrasena" class="form-control rounded-pill" autocomplete="new-password" aria-required="true" placeholder="contraseña" />
+                            <label for="Input.Contrasena"><i class="bi bi-lock-fill me-2"></i>Contraseña</label>
+                            <ValidationMessage For="() => Input.Contrasena" class="text-danger" />
+                        </div>
+                        <div class="form-floating mb-4">
+                            <InputText type="password" @bind-Value="Input.ConfirmarContrasena" id="Input.ConfirmarContrasena" class="form-control rounded-pill" autocomplete="new-password" aria-required="true" placeholder="confirmar contraseña" />
+                            <label for="Input.ConfirmarContrasena"><i class="bi bi-lock-fill me-2"></i>Confirmar Contraseña</label>
+                            <ValidationMessage For="() => Input.ConfirmarContrasena" class="text-danger" />
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-dark btn-lg rounded-pill">Registrarse</button>
+                        </div>
+                    </EditForm>
+
+                    <hr class="my-4" />
+
+                    @* Sección de logins externos, eliminada si no se usa *@
+                    @* Si necesitas esta sección, deberás descomentarla y asegurarte de que ExternalLoginPicker esté disponible *@
+                    @* <div class="text-center">
+                        <p>O regístrate usando:</p>
+                        <ExternalLoginPicker />
+                    </div> *@
+
+                    <div class="text-center mt-3">
+                        <p>¿Ya tienes una cuenta? <NavLink href="Account/Login">Inicia Sesión aquí.</NavLink></p>
+                    </div>
+                </div>
             </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.Password">Password</label>
-                <ValidationMessage For="() => Input.Password" class="text-danger" />
-            </div>
-            <div class="form-floating mb-3">
-                <InputText type="password" @bind-Value="Input.ConfirmPassword" id="Input.ConfirmPassword" class="form-control" autocomplete="new-password" aria-required="true" placeholder="password" />
-                <label for="Input.ConfirmPassword">Confirm Password</label>
-                <ValidationMessage For="() => Input.ConfirmPassword" class="text-danger" />
-            </div>
-            <button type="submit" class="w-100 btn btn-lg btn-primary">Register</button>
-        </EditForm>
-    </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to register.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
+        </div>
     </div>
 </div>
 
 @code {
-    private IEnumerable<IdentityError>? identityErrors;
+    private IEnumerable<IdentityError>? erroresIdentidad;
 
     [SupplyParameterFromForm]
     private InputModel Input { get; set; } = new();
@@ -63,46 +78,46 @@
     [SupplyParameterFromQuery]
     private string? ReturnUrl { get; set; }
 
-    private string? Message => identityErrors is null ? null : $"Error: {string.Join(", ", identityErrors.Select(error => error.Description))}";
+    private string? Mensaje => erroresIdentidad is null ? null : $"Error: {string.Join(", ", erroresIdentidad.Select(error => error.Description))}";
 
-    public async Task RegisterUser(EditContext editContext)
+    public async Task RegistrarUsuario(EditContext editContext)
     {
-        var user = CreateUser();
+        var usuario = CrearUsuario();
 
-        await UserStore.SetUserNameAsync(user, Input.Email, CancellationToken.None);
-        var emailStore = GetEmailStore();
-        await emailStore.SetEmailAsync(user, Input.Email, CancellationToken.None);
-        var result = await UserManager.CreateAsync(user, Input.Password);
+        await UserStore.SetUserNameAsync(usuario, Input.Email, CancellationToken.None);
+        var almacenEmail = ObtenerAlmacenEmail();
+        await almacenEmail.SetEmailAsync(usuario, Input.Email, CancellationToken.None);
+        var resultado = await UserManager.CreateAsync(usuario, Input.Contrasena);
 
-        if (!result.Succeeded)
+        if (!resultado.Succeeded)
         {
-            identityErrors = result.Errors;
+            erroresIdentidad = resultado.Errors;
             return;
         }
 
-        Logger.LogInformation("User created a new account with password.");
+        Logger.LogInformation("Usuario creó una nueva cuenta con contraseña.");
 
-        var userId = await UserManager.GetUserIdAsync(user);
-        var code = await UserManager.GenerateEmailConfirmationTokenAsync(user);
-        code = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(code));
-        var callbackUrl = NavigationManager.GetUriWithQueryParameters(
-            NavigationManager.ToAbsoluteUri("Account/ConfirmEmail").AbsoluteUri,
-            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = code, ["returnUrl"] = ReturnUrl });
+        var userId = await UserManager.GetUserIdAsync(usuario);
+        var codigo = await UserManager.GenerateEmailConfirmationTokenAsync(usuario);
+        codigo = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(codigo));
+        var urlCallback = NavigationManager.GetUriWithQueryParameters(
+            NavigationManager.ToAbsoluteUri("Account/ConfirmarEmail").AbsoluteUri,
+            new Dictionary<string, object?> { ["userId"] = userId, ["code"] = codigo, ["returnUrl"] = ReturnUrl });
 
-        await EmailSender.SendConfirmationLinkAsync(user, Input.Email, HtmlEncoder.Default.Encode(callbackUrl));
+        await EmailSender.SendConfirmationLinkAsync(usuario, Input.Email, HtmlEncoder.Default.Encode(urlCallback));
 
         if (UserManager.Options.SignIn.RequireConfirmedAccount)
         {
             RedirectManager.RedirectTo(
-                "Account/RegisterConfirmation",
+                "Account/ConfirmacionRegistro", 
                 new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
         }
 
-        await SignInManager.SignInAsync(user, isPersistent: false);
+        await SignInManager.SignInAsync(usuario, isPersistent: false);
         RedirectManager.RedirectTo(ReturnUrl);
     }
 
-    private ApplicationUser CreateUser()
+    private ApplicationUser CrearUsuario()
     {
         try
         {
@@ -110,36 +125,36 @@
         }
         catch
         {
-            throw new InvalidOperationException($"Can't create an instance of '{nameof(ApplicationUser)}'. " +
-                $"Ensure that '{nameof(ApplicationUser)}' is not an abstract class and has a parameterless constructor.");
+            throw new InvalidOperationException($"No se puede crear una instancia de '{nameof(ApplicationUser)}'. " +
+                $"Asegúrate de que '{nameof(ApplicationUser)}' no sea una clase abstracta y tenga un constructor sin parámetros.");
         }
     }
 
-    private IUserEmailStore<ApplicationUser> GetEmailStore()
+    private IUserEmailStore<ApplicationUser> ObtenerAlmacenEmail()
     {
         if (!UserManager.SupportsUserEmail)
         {
-            throw new NotSupportedException("The default UI requires a user store with email support.");
+            throw new NotSupportedException("La UI predeterminada requiere un almacén de usuarios con soporte de email.");
         }
         return (IUserEmailStore<ApplicationUser>)UserStore;
     }
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
-        [Display(Name = "Email")]
+        [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
+        [EmailAddress(ErrorMessage = "Formato de correo electrónico no válido.")]
+        [Display(Name = "Correo Electrónico")]
         public string Email { get; set; } = "";
 
-        [Required]
-        [StringLength(100, ErrorMessage = "The {0} must be at least {2} and at max {1} characters long.", MinimumLength = 6)]
+        [Required(ErrorMessage = "La contraseña es obligatoria.")]
+        [StringLength(100, ErrorMessage = "La {0} debe tener al menos {2} y como máximo {1} caracteres de longitud.", MinimumLength = 6)]
         [DataType(DataType.Password)]
-        [Display(Name = "Password")]
-        public string Password { get; set; } = "";
+        [Display(Name = "Contraseña")]
+        public string Contrasena { get; set; } = "";
 
         [DataType(DataType.Password)]
-        [Display(Name = "Confirm password")]
-        [Compare("Password", ErrorMessage = "The password and confirmation password do not match.")]
-        public string ConfirmPassword { get; set; } = "";
+        [Display(Name = "Confirmar Contraseña")]
+        [Compare("Contrasena", ErrorMessage = "La contraseña y la confirmación de contraseña no coinciden.")]
+        public string ConfirmarContrasena { get; set; } = "";
     }
 }
