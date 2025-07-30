@@ -1,5 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 using System.Collections.Generic;
+
 namespace BarbudosShop.Models
 {
     public class Producto
@@ -22,8 +23,9 @@ namespace BarbudosShop.Models
 
         public Categoria Categoria { get; set; }
 
+        [Required]
+        public int CantidadEnStock { get; set; }
+
         public ICollection<ImagenProducto> Imagenes { get; set; }
     }
-
 }
-
