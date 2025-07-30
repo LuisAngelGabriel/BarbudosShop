@@ -1,10 +1,15 @@
 using System.Diagnostics.CodeAnalysis;
 using Microsoft.AspNetCore.Components;
+using Microsoft.AspNetCore.Http;
+using System;
+using System.Collections.Generic;
 
 namespace BarbudosShop.Components.Account
 {
-    internal sealed class IdentityRedirectManager(NavigationManager navigationManager)
+    public sealed class IdentityRedirectManager
     {
+        private readonly NavigationManager navigationManager;
+
         public const string StatusCookieName = "Identity.StatusMessage";
 
         private static readonly CookieBuilder StatusCookieBuilder = new()
@@ -15,19 +20,21 @@ namespace BarbudosShop.Components.Account
             MaxAge = TimeSpan.FromSeconds(5),
         };
 
+        public IdentityRedirectManager(NavigationManager navigationManager)
+        {
+            this.navigationManager = navigationManager;
+        }
+
         [DoesNotReturn]
         public void RedirectTo(string? uri)
         {
             uri ??= "";
 
-            // Prevent open redirects.
             if (!Uri.IsWellFormedUriString(uri, UriKind.Relative))
             {
                 uri = navigationManager.ToBaseRelativePath(uri);
             }
 
-            // During static rendering, NavigateTo throws a NavigationException which is handled by the framework as a redirect.
-            // So as long as this is called from a statically rendered Identity component, the InvalidOperationException is never thrown.
             navigationManager.NavigateTo(uri);
             throw new InvalidOperationException($"{nameof(IdentityRedirectManager)} can only be used during static rendering.");
         }
