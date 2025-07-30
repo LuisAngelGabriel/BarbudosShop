@@ -1,9 +1,12 @@
 ﻿@inherits LayoutComponentBase
+@using Microsoft.AspNetCore.Components.Authorization 
+@inject NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider 
 
 <nav class="navbar navbar-expand-lg navbar-light bg-light">
     <div class="container px-4 px-lg-5">
         <a class="navbar-brand me-auto" href="/">
-            <img src="/barbudos.png" alt="Logo Barbudos Shop" height="80" /> 
+            <img src="/barbudos.png" alt="Logo Barbudos Shop" height="80" />
         </a>
         <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarSupportedContent"
                 aria-controls="navbarSupportedContent" aria-expanded="false" aria-label="Toggle navigation">
@@ -12,7 +15,7 @@
         <div class="collapse navbar-collapse" id="navbarSupportedContent">
             <ul class="navbar-nav me-auto mb-2 mb-lg-0 ms-lg-4">
                 <li class="nav-item"><NavLink class="nav-link" href="/" Match="NavLinkMatch.All">Inicio</NavLink></li>
-                <li class="nav-item"><NavLink class="nav-link" href="/contact">Contacto</NavLink></li>
+                <li class="nav-item"><NavLink class="nav-link" href="/Contact">Contacto</NavLink></li>
                 <li class="nav-item dropdown">
                     <a class="nav-link dropdown-toggle" id="navbarDropdown" href="#" role="button"
                        data-bs-toggle="dropdown" aria-expanded="false">Productos</a>
@@ -29,6 +32,7 @@
                     </ul>
                 </li>
             </ul>
+
             <form class="d-flex align-items-center">
                 <div class="input-search-wrapper">
                     <svg xmlns="http://www.w3.org/2000/svg" class="search-icon" viewBox="0 0 24 24" fill="none" stroke="#333" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -38,10 +42,38 @@
                     <input type="search" placeholder="Buscar productos..." aria-label="Buscar productos" />
                 </div>
 
-                <button class="btn btn-outline-primary me-2" type="button">
-                    <i class="bi-person-plus-fill me-1"></i>
-                    Mi Cuenta
-                </button>
+                <AuthorizeView>
+                    <Authorized>
+                        <div class="dropdown me-2">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="myAccountDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi-person-fill me-1"></i> @context.User.Identity?.Name
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="myAccountDropdown">
+                                <li><NavLink class="dropdown-item" href="Account/Manage">Mi Perfil</NavLink></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li>
+                                    <form action="Account/Logout" method="post">
+                                        <AntiforgeryToken />
+                                        <input type="hidden" name="ReturnUrl" value="@currentUrl" />
+                                        <button type="submit" class="dropdown-item">Cerrar Sesión</button>
+                                    </form>
+                                </li>
+                            </ul>
+                        </div>
+                    </Authorized>
+                    <NotAuthorized>
+                        <div class="dropdown me-2">
+                            <button class="btn btn-outline-primary dropdown-toggle" type="button" id="myAccountDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi-person-plus-fill me-1"></i> Mi Cuenta
+                            </button>
+                            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="myAccountDropdown">
+                                <li><NavLink class="dropdown-item" href="Account/Register">Registrarse</NavLink></li>
+                                <li><hr class="dropdown-divider" /></li>
+                                <li><NavLink class="dropdown-item" href="Account/Login">Iniciar Sesión</NavLink></li>
+                            </ul>
+                        </div>
+                    </NotAuthorized>
+                </AuthorizeView>
 
                 <button class="btn btn-outline-dark" type="button">
                     <i class="bi-cart-fill me-1"></i>
@@ -55,13 +87,33 @@
 
 <hr class="my-0" style="border-top: 2px solid #000;" />
 
-
 <main class="container my-4">
     @Body
 </main>
 
 <footer class="py-5 bg-dark mt-auto">
     <div class="container">
-        <p class="m-0 text-center text-white">Copyright &copy; Your Website 2025</p>
+        <p class="m-0 text-center text-white">Copyright &copy; Barbudos Shop @DateTime.Now.Year</p>
     </div>
 </footer>
+
+@code {
+    private string? currentUrl;
+
+    protected override void OnInitialized()
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(NavigationManager.Uri);
+        NavigationManager.LocationChanged += OnLocationChanged;
+    }
+
+    private void OnLocationChanged(object? sender, LocationChangedEventArgs e)
+    {
+        currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
+        StateHasChanged();
+    }
+
+    public void Dispose()
+    {
+        NavigationManager.LocationChanged -= OnLocationChanged;
+    }
+}
