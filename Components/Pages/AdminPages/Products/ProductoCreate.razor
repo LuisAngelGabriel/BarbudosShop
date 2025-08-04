@@ -1,0 +1,202 @@
+﻿@page "/productos/crear"
+@using BarbudosShop.Models
+@using BarbudosShop.Services
+@using Blazored.Toast.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject IToastService Toast
+@inject NavigationManager Navigation
+@inject CategoriaService CategoriaService
+@inject ProductoService ProductoService
+
+<h3 class="mb-4 text-center text-primary">Crear Nuevo Producto</h3>
+
+<EditForm Model="producto" OnValidSubmit="Guardar" FormName="formCrearProducto">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="card shadow-sm mx-auto" style="max-width: 700px;">
+        <div class="card-body p-4">
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Nombre del Producto</label>
+                <InputText class="form-control" @bind-Value="producto.Nombre" />
+                <ValidationMessage For="@(() => producto.Nombre)" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Descripción</label>
+                <InputTextArea class="form-control" @bind-Value="producto.Descripcion" rows="3" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Marca</label>
+                <InputText class="form-control" @bind-Value="producto.Marca" />
+                <ValidationMessage For="@(() => producto.Marca)" />
+            </div>
+
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Precio</label>
+                    <InputNumber class="form-control" @bind-Value="producto.Precio" step="0.01" />
+                    <ValidationMessage For="@(() => producto.Precio)" />
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label fw-semibold">Cantidad en Stock</label>
+                    <InputNumber class="form-control" @bind-Value="producto.Cantidad" />
+                    <ValidationMessage For="@(() => producto.Cantidad)" />
+                </div>
+            </div>
+
+            <div class="mb-3 mt-3">
+                <label class="form-label fw-semibold">Categoría</label>
+                <InputSelect class="form-select" @bind-Value="producto.IdCategoria">
+                    <option value="">-- Selecciona una categoría --</option>
+                    @foreach (var cat in categorias)
+                    {
+                        <option value="@cat.IdCategoria">@cat.Nombre</option>
+                    }
+                </InputSelect>
+                <ValidationMessage For="@(() => producto.IdCategoria)" />
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label fw-semibold">Imagen del Producto</label>
+                <InputFile OnChange="OnInputFileChange" accept="image/*" class="form-control" />
+                @if (!string.IsNullOrEmpty(producto.ImagenUrl))
+                {
+                    <div class="mt-2 text-center">
+                        <img src="@producto.ImagenUrl" alt="Imagen producto" class="img-fluid rounded" style="max-height: 250px;" />
+                    </div>
+                }
+                @if (!string.IsNullOrEmpty(ErrorMessage))
+                {
+                    <small class="text-danger">@ErrorMessage</small>
+                }
+            </div>
+        </div>
+
+        <div class="card-footer d-flex justify-content-between bg-white">
+            <a href="/productos/" class="btn btn-outline-secondary">
+                <i class="bi bi-arrow-left-circle"></i> Volver
+            </a>
+            <a href="/productos" class="btn btn-outline-info">
+                <i class="bi bi-eye"></i> Ver Productos
+            </a>
+            <button type="submit" class="btn btn-primary" disabled="@isSubmitting">
+                @if (isSubmitting)
+                {
+                    <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                    <text> Guardando...</text>
+                }
+                else
+                {
+                    <i class="bi bi-save2"></i>
+                    <text> Guardar</text>
+                }
+            </button>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    private Producto producto = new Producto();
+    private List<Categoria> categorias = new();
+    private bool isSubmitting = false;
+    private string? ErrorMessage;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            categorias = await CategoriaService.Listar(c => true);
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Error al cargar categorías: {ex.Message}");
+            categorias = new List<Categoria>();
+        }
+    }
+
+    private async Task Guardar()
+    {
+        if (isSubmitting) return;
+
+        isSubmitting = true;
+        StateHasChanged();
+
+        try
+        {
+            // Configurar campos faltantes
+            producto.FechaEntrada = DateTime.Now;
+
+            var guardado = await ProductoService.Guardar(producto);
+
+            if (guardado)
+            {
+                Toast.ShowSuccess("Producto guardado correctamente.");
+                Navigation.NavigateTo("/productos");
+            }
+            else
+            {
+                Toast.ShowError("Error al guardar el producto.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Error inesperado: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+
+    private const long MaxFileSize = 2 * 1024 * 1024;
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            var file = e.File;
+
+            if (file.Size > MaxFileSize)
+            {
+                ErrorMessage = "El archivo es demasiado grande (máximo 2 MB).";
+                return;
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+            if (!allowedExtensions.Contains(extension))
+            {
+                ErrorMessage = "Formato no soportado. Use JPG, PNG, GIF o WEBP.";
+                return;
+            }
+
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var folderPath = Path.Combine("wwwroot", "uploads", "productos");
+            var fullFolderPath = Path.Combine(Directory.GetCurrentDirectory(), folderPath);
+
+            if (!Directory.Exists(fullFolderPath))
+            {
+                Directory.CreateDirectory(fullFolderPath);
+            }
+
+            var fullPath = Path.Combine(fullFolderPath, fileName);
+
+            await using var fileStream = new FileStream(fullPath, FileMode.Create);
+            await file.OpenReadStream(MaxFileSize).CopyToAsync(fileStream);
+
+            producto!.ImagenUrl = $"/uploads/productos/{fileName}";
+            ErrorMessage = null;
+            StateHasChanged();
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error al subir la imagen: {ex.Message}";
+        }
+    }
+}

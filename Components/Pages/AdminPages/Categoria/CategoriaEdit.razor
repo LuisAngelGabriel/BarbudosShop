@@ -1,0 +1,165 @@
+﻿@page "/Categorias/Editar/{Id:int}"
+@using BarbudosShop.Services
+@using BarbudosShop.Models
+@using Blazored.Toast.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+
+@inject CategoriaService categoriaService
+@inject NavigationManager navigationManager
+@inject IToastService toast
+@inject IJSRuntime JS
+
+<EditForm Model="categoria" OnValidSubmit="Guardar" FormName="editCategoriaForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="container mt-3">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h5>@(Id == 0 ? "Crear Categoría" : "Editar Categoría")</h5>
+            </div>
+
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">ID Categoría</label>
+                    <InputNumber class="form-control" @bind-Value="categoria.IdCategoria" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nombre</label>
+                    <InputText class="form-control" @bind-Value="categoria.Nombre" />
+                    <ValidationMessage For="@(() => categoria.Nombre)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Descripción</label>
+                    <InputText class="form-control" @bind-Value="categoria.Descripcion" />
+                    <ValidationMessage For="@(() => categoria.Descripcion)" />
+                </div>
+            </div>
+
+            <div class="card-footer text-center">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" @onclick="Volver">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Guardar
+                    </button>
+                    @if (Id != 0)
+                    {
+                        <button type="button" class="btn btn-danger" @onclick="EliminarCategoria">
+                            <i class="bi bi-trash"></i> Eliminar
+                        </button>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter] public int Id { get; set; }
+
+    private Categoria categoria = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            if (Id != 0)
+            {
+                var resultado = await categoriaService.Buscar(Id);
+                if (resultado != null)
+                    categoria = resultado;
+                else
+                    toast.ShowError("Categoría no encontrada.");
+            }
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError($"Error al cargar la categoría: {ex.Message}");
+        }
+    }
+
+    private async Task Guardar()
+    {
+        try
+        {
+            if (categoria != null)
+            {
+                var resultado = await categoriaService.Guardar(categoria);
+                if (resultado)
+                {
+                    toast.ShowSuccess("Categoría guardada correctamente.");
+                    Volver();
+                }
+                else
+                {
+                    toast.ShowError("Error al guardar la categoría.");
+                }
+            }
+            else
+            {
+                toast.ShowError("Error: categoría no válida.");
+            }
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError($"Error inesperado: {ex.Message}");
+        }
+    }
+
+    private void Volver()
+    {
+        navigationManager.NavigateTo("/Categorias");
+    }
+
+    private async Task Nuevo()
+    {
+        try
+        {
+            if (Id != 0)
+            {
+                var resultado = await categoriaService.Buscar(Id);
+                categoria = resultado ?? new Categoria();
+            }
+            else
+            {
+                categoria = new Categoria();
+            }
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError($"Error al restaurar datos: {ex.Message}");
+            categoria = new Categoria();
+        }
+    }
+
+    private async Task EliminarCategoria()
+    {
+        bool confirmar = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de que deseas eliminar esta categoría?");
+        if (!confirmar)
+            return;
+
+        try
+        {
+            bool eliminado = await categoriaService.Eliminar(Id);
+            if (eliminado)
+            {
+                toast.ShowSuccess("Categoría eliminada correctamente.");
+                navigationManager.NavigateTo("/Categorias");
+            }
+            else
+            {
+                toast.ShowError("No se pudo eliminar la categoría.");
+            }
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError($"Error al eliminar: {ex.Message}");
+        }
+    }
+}

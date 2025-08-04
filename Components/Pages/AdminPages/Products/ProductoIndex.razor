@@ -1,0 +1,152 @@
+﻿@page "/productos"
+@using BarbudosShop.Models
+@using BarbudosShop.Services
+@using Blazored.Toast.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject ProductoService productoService
+@inject NavigationManager navigationManager
+@inject IToastService toast
+
+<div class="container">
+    <div class="card shadow-lg">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="card-title mb-0 w-100 text-center">Consulta de Productos</h5>
+            <a href="/productos/crear" class="btn btn-success bi bi-plus-circle"> Crear</a>
+        </div>
+
+        <div class="card-body">
+            <!-- Filtro -->
+            <div class="row mb-3">
+                <div class="col-3">
+                    <label class="form-label"><strong>Filtrar por</strong></label>
+                    <select class="form-select" @bind="Filtro">
+                        <option value="" disabled>Elija una opción</option>
+                        <option value="IdProducto">ID Producto</option>
+                        <option value="Nombre">Nombre</option>
+                        <option value="Categoria">Categoría</option>
+                    </select>
+                </div>
+                <div class="col-5">
+                    <label class="form-label"><strong>Búsqueda</strong></label>
+                    <input type="text" class="form-control" placeholder="Buscar..." @bind="ValorFiltro" />
+                </div>
+                <div class="col-2 d-flex align-items-end">
+                    <button class="btn btn-primary" @onclick="Buscar">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <table class="table table-hover mt-3">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Marca</th>
+                        <th>Precio</th>
+                        <th>Stock</th>
+                        <th>Categoría</th>
+                        <th class="text-center">Editar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (ListaProductos != null && ListaProductos.Count > 0)
+                    {
+                        @foreach (var producto in ListaProductos)
+                        {
+                            <tr>
+                                <td>@producto.IdProducto</td>
+                                <td>@producto.Nombre</td>
+                                <td>@producto.Marca</td>
+                                <td>@producto.Precio.ToString("C")</td>
+                                <td>@producto.Cantidad</td>
+                                <td>@producto.Categoria?.Nombre</td>
+                                <td class="text-center">
+                                    <a href="/productos/editar/@producto.IdProducto" class="btn btn-outline-primary bi bi-pencil-square"></a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr><td colspan="7" class="text-center">No se encontraron productos.</td></tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer d-flex justify-content-between">
+            <span>Cantidad: @ListaProductos?.Count</span>     
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Producto> ListaProductos = new();
+    private string Filtro { get; set; } = "";
+    private string ValorFiltro { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        try
+        {
+            ListaProductos = await productoService.Listar(p => true);
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError($"Error al cargar los productos: {ex.Message}");
+            ListaProductos = new List<Producto>();
+        }
+    }
+
+    private async Task Buscar()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Filtro) || string.IsNullOrWhiteSpace(ValorFiltro))
+            {
+                await CargarDatos();
+                return;
+            }
+
+            ValorFiltro = ValorFiltro.ToLower();
+
+            if (Filtro == "IdProducto" && int.TryParse(ValorFiltro, out int id))
+            {
+                ListaProductos = await productoService.Listar(p => p.IdProducto == id);
+            }
+            else if (Filtro == "Nombre")
+            {
+                ListaProductos = await productoService.Listar(p => p.Nombre.ToLower().Contains(ValorFiltro));
+            }
+            else if (Filtro == "Categoria")
+            {
+                ListaProductos = await productoService.Listar(p => p.Categoria != null && p.Categoria.Nombre.ToLower().Contains(ValorFiltro));
+            }
+            else
+            {
+                await CargarDatos();
+            }
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError($"Error al buscar productos: {ex.Message}");
+            ListaProductos = new List<Producto>();
+        }
+    }
+
+    private async Task RefrescarLista()
+    {
+        toast.ShowInfo("Refrescando lista de productos...");
+        await CargarDatos();
+        StateHasChanged();
+    }
+}

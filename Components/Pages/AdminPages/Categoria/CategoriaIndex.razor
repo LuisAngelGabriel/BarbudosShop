@@ -1,0 +1,137 @@
+﻿@page "/Categorias"
+@using BarbudosShop.Services
+@using BarbudosShop.Models
+@rendermode InteractiveServer
+@using Blazored.Toast.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+
+@inject CategoriaService categoriaService
+@inject NavigationManager navigationManager
+@inject IToastService toast
+
+<div class="container">
+    <div class="card shadow-lg">
+        <div class="card-header d-flex justify-content-between align-items-center position-relative">
+            <h5 class="card-title mb-0 text-center w-100">Consulta de Categorías</h5>
+            <a class="btn btn-success bi bi-plus-circle" href="/CategoriaCreate"> Crear</a>
+        </div>
+
+        <div class="card-body">
+            <!-- Filtro -->
+            <div class="row mb-3">
+                <div class="col-3">
+                    <label class="form-label"><strong>Filtrar por</strong></label>
+                    <select class="form-select" @bind="Filtro">
+                        <option value="" disabled>Elija una opción</option>
+                        <option value="IdCategoria">ID Categoría</option>
+                        <option value="Nombre">Nombre</option>
+                    </select>
+                </div>
+                <div class="col-5">
+                    <label class="form-label"><strong>Búsqueda</strong></label>
+                    <input class="form-control" placeholder="Buscar..." @bind="ValorFiltro" />
+                </div>
+                <div class="col-2 d-flex align-items-end">
+                    <button class="btn btn-primary" @onclick="Buscar">
+                        <i class="bi bi-search"></i> Buscar
+                    </button>
+                </div>
+            </div>
+
+            <!-- Tabla -->
+            <table class="table table-hover mt-3">
+                <thead class="table-light">
+                    <tr>
+                        <th>ID</th>
+                        <th>Nombre</th>
+                        <th>Descripción</th>
+                        <th class="text-center">Editar</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    @if (ListaCategorias?.Count > 0)
+                    {
+                        @foreach (var c in ListaCategorias)
+                        {
+                            <tr>
+                                <td>@c.IdCategoria</td>
+                                <td>@c.Nombre</td>
+                                <td>@c.Descripcion</td>
+                                <td class="text-center">
+                                    <a class="btn btn-outline-primary bi bi-pencil-square" href="/Categorias/Editar/@c.IdCategoria"></a>
+                                </td>
+                            </tr>
+                        }
+                    }
+                    else
+                    {
+                        <tr>
+                            <td colspan="4" class="text-center">No se encontraron categorías.</td>
+                        </tr>
+                    }
+                </tbody>
+            </table>
+        </div>
+
+        <div class="card-footer d-flex justify-content-between">
+            <span>Cantidad: @ListaCategorias?.Count</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    private List<Categoria> ListaCategorias = new();
+    private string Filtro { get; set; } = "";
+    private string ValorFiltro { get; set; } = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        try
+        {
+            ListaCategorias = await categoriaService.Listar(c => true);
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError($"Error al cargar las categorías: {ex.Message}");
+            ListaCategorias = new List<Categoria>();
+        }
+    }
+
+    private async Task Buscar()
+    {
+        try
+        {
+            if (string.IsNullOrWhiteSpace(Filtro) || string.IsNullOrWhiteSpace(ValorFiltro))
+            {
+                await CargarDatos();
+                return;
+            }
+
+            ValorFiltro = ValorFiltro.ToLower();
+
+            if (Filtro == "IdCategoria" && int.TryParse(ValorFiltro, out int id))
+            {
+                ListaCategorias = await categoriaService.Listar(c => c.IdCategoria == id);
+            }
+            else if (Filtro == "Nombre")
+            {
+                ListaCategorias = await categoriaService.Listar(c => c.Nombre.ToLower().Contains(ValorFiltro));
+            }
+            else
+            {
+                await CargarDatos();
+            }
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError($"Error al buscar categorías: {ex.Message}");
+            ListaCategorias = new List<Categoria>();
+        }
+    }
+}
