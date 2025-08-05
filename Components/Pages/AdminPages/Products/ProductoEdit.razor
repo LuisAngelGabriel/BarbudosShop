@@ -1,0 +1,244 @@
+﻿@page "/productos/editar/{id:int}"
+@using BarbudosShop.Models
+@using BarbudosShop.Services
+@using Blazored.Toast.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject NavigationManager Navigation
+@inject CategoriaService CategoriaService
+@inject ProductoService ProductoService
+@inject IToastService Toast
+@inject IJSRuntime JS
+
+@if (producto != null)
+{
+    <EditForm Model="producto" OnValidSubmit="Guardar" FormName="editProductoForm">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+
+        <div class="container mt-3">
+            <div class="card shadow">
+                <div class="card-header bg-warning text-dark text-center">
+                    <h5>Editar Producto</h5>
+                </div>
+
+                <div class="card-body">
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Nombre</strong></label>
+                        <InputText class="form-control" @bind-Value="producto.Nombre" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Descripción</strong></label>
+                        <InputTextArea class="form-control" @bind-Value="producto.Descripcion" rows="3" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Precio</strong></label>
+                        <InputNumber class="form-control" @bind-Value="producto.Precio" step="0.01" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Marca</strong></label>
+                        <InputText class="form-control" @bind-Value="producto.Marca" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Cantidad en Stock</strong></label>
+                        <InputNumber class="form-control" @bind-Value="producto.Cantidad" />
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Categoría</strong></label>
+                        <InputSelect class="form-select" @bind-Value="producto.IdCategoria">
+                            <option value="">Seleccione una categoría...</option>
+                            @foreach (var cat in categorias)
+                            {
+                                <option value="@cat.IdCategoria">@cat.Nombre</option>
+                            }
+                        </InputSelect>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label"><strong>Imagen</strong></label>
+
+                        <InputFile OnChange="OnInputFileChange" accept="image/*" class="form-control" />
+
+                        @if (!string.IsNullOrEmpty(producto.ImagenUrl))
+                        {
+                            <div class="mt-2">
+                                <img src="@producto.ImagenUrl" alt="Imagen producto" style="max-height: 200px;" class="img-thumbnail" />
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(ErrorMessage))
+                        {
+                            <div class="text-danger mt-2">@ErrorMessage</div>
+                        }
+                    </div>
+                </div>
+
+                <div class="card-footer text-center">
+                    <div class="btn-group">
+                        <button type="button" class="btn btn-secondary" @onclick="Volver">
+                            <i class="bi bi-arrow-left"></i> Volver
+                        </button>
+                        <button type="submit" class="btn btn-warning">
+                            <i class="bi bi-check-circle"></i> Actualizar
+                        </button>
+                        <button type="button" class="btn btn-danger" @onclick="EliminarProducto">
+                            <i class="bi bi-trash"></i> Eliminar
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </EditForm>
+}
+else
+{
+    <p>Cargando datos del producto...</p>
+}
+
+@code {
+    [Parameter] public int id { get; set; }
+
+    private Producto? producto;
+    private List<Categoria> categorias = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            categorias = await CategoriaService.Listar(c => true);
+
+            if (categorias == null || categorias.Count == 0)
+            {
+                Toast.ShowWarning("No hay categorías disponibles. Creando una categoría primero.");
+                Navigation.NavigateTo("/Categorias");
+                return;
+            }
+
+            producto = await ProductoService.Buscar(id);
+            if (producto == null)
+            {
+                Toast.ShowError("Producto no encontrado.");
+                Navigation.NavigateTo("/productos");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Error al cargar datos: {ex.Message}");
+            Navigation.NavigateTo("/productos");
+        }
+    }
+
+    private async Task Guardar()
+    {
+        if (producto is null) return;
+
+        try
+        {
+            var actualizado = await ProductoService.Guardar(producto);
+
+            if (actualizado)
+            {
+                Toast.ShowSuccess("Producto actualizado correctamente.");
+                Volver();
+            }
+            else
+            {
+                Toast.ShowError("Error al actualizar el producto.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Error inesperado: {ex.Message}");
+        }
+    }
+
+    private void Volver()
+    {
+        Navigation.NavigateTo("/productos");
+    }
+
+    private const long MaxFileSize = 2 * 1024 * 1024;
+    private string? ErrorMessage;
+
+    private async Task OnInputFileChange(InputFileChangeEventArgs e)
+    {
+        try
+        {
+            ErrorMessage = null;
+            var file = e.File;
+
+            if (file == null || file.Size == 0)
+            {
+                ErrorMessage = "Por favor seleccione un archivo válido.";
+                return;
+            }
+
+            if (file.Size > MaxFileSize)
+            {
+                ErrorMessage = $"El archivo es demasiado grande (máximo {MaxFileSize / (1024 * 1024)} MB).";
+                return;
+            }
+
+            var allowedExtensions = new[] { ".jpg", ".jpeg", ".png", ".gif", ".webp" };
+            var extension = Path.GetExtension(file.Name).ToLowerInvariant();
+            if (string.IsNullOrEmpty(extension) || !allowedExtensions.Contains(extension))
+            {
+                ErrorMessage = "Formato no soportado. Use JPG, PNG, GIF o WEBP.";
+                return;
+            }
+
+            var fileName = $"{Guid.NewGuid()}{extension}";
+            var folderPath = Path.Combine("wwwroot", "Imagenes");
+            var fullFolderPath = Path.Combine(Directory.GetCurrentDirectory(), folderPath);
+
+            Directory.CreateDirectory(fullFolderPath);
+
+            var fullPath = Path.Combine(fullFolderPath, fileName);
+
+            await using var fileStream = new FileStream(fullPath, FileMode.Create);
+            await using var stream = file.OpenReadStream(MaxFileSize);
+            await stream.CopyToAsync(fileStream);
+
+            producto!.ImagenUrl = $"/Imagenes{fileName}";
+        }
+        catch (Exception ex)
+        {
+            ErrorMessage = $"Error inesperado: {ex.Message}";
+        }
+        finally
+        {
+            StateHasChanged();
+        }
+    }
+
+    private async Task EliminarProducto()
+    {
+        bool confirmar = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de que deseas eliminar este producto?");
+        if (!confirmar)
+            return;
+
+        try
+        {
+            bool eliminado = await ProductoService.Eliminar(id);
+            if (eliminado)
+            {
+                Toast.ShowSuccess("Producto eliminado correctamente.");
+                Navigation.NavigateTo("/productos");
+            }
+            else
+            {
+                Toast.ShowError("No se pudo eliminar el producto.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Error al eliminar: {ex.Message}");
+        }
+    }
+}

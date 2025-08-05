@@ -1,19 +1,18 @@
 ﻿using System.ComponentModel.DataAnnotations;
+using System.ComponentModel.DataAnnotations.Schema;
 
-namespace BarbudosShop.Models
+namespace BarbudosShop.Models;
+
+public class Categoria
 {
-    public class Categoria
-    {
+    [Key]
+    [DatabaseGenerated(DatabaseGeneratedOption.Identity)]
+    public int IdCategoria { get; set; }
 
-        [Key]
-        public int CategoriaId { get; set; }
+    [Required(ErrorMessage = "El nombre es obligatorio.")]
+    [StringLength(100, ErrorMessage = "El nombre no puede tener más de 100 caracteres.")]
+    public string Nombre { get; set; } = string.Empty;
 
-        [Required]
-        [StringLength(100)]
-        public string Nombre { get; set; } = string.Empty;
-
-        public string Descripcion { get; set; } = string.Empty;
-
-        public ICollection<Producto> Productos { get; set; }
-    }
+    [StringLength(250, ErrorMessage = "La descripción no puede tener más de 250 caracteres.")]
+    public string? Descripcion { get; set; }
 }

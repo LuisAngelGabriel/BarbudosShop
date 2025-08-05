@@ -1,0 +1,99 @@
+﻿@page "/CategoriaCreate"
+@using BarbudosShop.Services
+@using BarbudosShop.Models
+@rendermode InteractiveServer
+@using Blazored.Toast.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+
+@inject IToastService Toast
+@inject CategoriaService CategoriaService
+@inject NavigationManager Navigation
+
+<EditForm Model="categoria" OnValidSubmit="Guardar" FormName="createCategoriaForm">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="container mt-4">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h5>Crear Categoría</h5>
+            </div>
+
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Nombre</label>
+                    <InputText class="form-control" @bind-Value="categoria.Nombre" />
+                    <ValidationMessage For="@(() => categoria.Nombre)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descripción</label>
+                    <InputText class="form-control" @bind-Value="categoria.Descripcion" />
+                    <ValidationMessage For="@(() => categoria.Descripcion)" />
+                </div>
+            </div>
+
+            <div class="card-footer text-center">
+                <div class="btn-group">
+                    <NavLink class="btn btn-secondary" href="/Categorias">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </NavLink>
+
+                    <button class="btn btn-success" type="submit" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <text> Guardando...</text>
+                        }
+                        else
+                        {
+                            <i class="bi bi-check-circle"></i>
+                            <text> Guardar</text>
+                        }
+                    </button>
+
+                    <NavLink class="btn btn-primary" href="/Categorias">
+                        <i class="bi bi-list-ul"></i> Ver Categorías
+                    </NavLink>
+                </div>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    private Categoria categoria = new();
+    private bool isSubmitting = false;
+
+    private async Task Guardar()
+    {
+        if (isSubmitting) return;
+
+        isSubmitting = true;
+        StateHasChanged();
+
+        try
+        {
+            var guardado = await CategoriaService.Guardar(categoria);
+            if (guardado)
+            {
+                Toast.ShowSuccess("Categoría guardada correctamente.");
+                Navigation.NavigateTo("/Categorias");
+            }
+            else
+            {
+                Toast.ShowError("Error al guardar la categoría.");
+            }
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Error inesperado: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+}
