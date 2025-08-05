@@ -10,57 +10,60 @@
 @inject NavigationManager NavigationManager
 @inject IdentityRedirectManager RedirectManager
 
-<PageTitle>Log in</PageTitle>
+<PageTitle>Iniciar Sesión</PageTitle>
 
-<h1>Log in</h1>
-<div class="row">
-    <div class="col-lg-6">
-        <section>
-            <StatusMessage Message="@errorMessage" />
-            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-                <DataAnnotationsValidator />
-                <h2>Use a local account to log in.</h2>
-                <hr />
-                <ValidationSummary class="text-danger" role="alert" />
-                <div class="form-floating mb-3">
-                    <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control" autocomplete="username" aria-required="true" placeholder="name@example.com" />
-                    <label for="Input.Email" class="form-label">Email</label>
-                    <ValidationMessage For="() => Input.Email" class="text-danger" />
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6 col-md-8">
+            <div class="card shadow-lg border-0 rounded-lg mt-5">
+                <div class="card-header bg-dark text-white text-center py-4">
+                    <h3 class="fw-bold my-0">Iniciar Sesión</h3>
                 </div>
-                <div class="form-floating mb-3">
-                    <InputText type="password" @bind-Value="Input.Password" id="Input.Password" class="form-control" autocomplete="current-password" aria-required="true" placeholder="password" />
-                    <label for="Input.Password" class="form-label">Password</label>
-                    <ValidationMessage For="() => Input.Password" class="text-danger" />
+                <div class="card-body p-4">
+                    <h5 class="text-center mb-4 text-muted">Inicia Sesión en tu Cuenta</h5>
+
+                    <EditForm Model="Input" OnValidSubmit="IniciarSesionUsuario" FormName="login">
+                        <DataAnnotationsValidator />
+                        <ValidationSummary class="text-danger text-center mb-3" role="alert" />
+                        <StatusMessage Message="@errorMessage" />
+
+                        <div class="form-floating mb-3">
+                            <InputText @bind-Value="Input.Email" id="Input.Email" class="form-control rounded-pill" autocomplete="username" aria-required="true" placeholder="nombre@ejemplo.com" />
+                            <label for="Input.Email"><i class="bi bi-envelope-fill me-2"></i>Correo Electrónico</label>
+                            <ValidationMessage For="() => Input.Email" class="text-danger" />
+                        </div>
+                        <div class="form-floating mb-3">
+                            <InputText type="password" @bind-Value="Input.Contrasena" id="Input.Contrasena" class="form-control rounded-pill" autocomplete="current-password" aria-required="true" placeholder="contraseña" />
+                            <label for="Input.Contrasena"><i class="bi bi-lock-fill me-2"></i>Contraseña</label>
+                            <ValidationMessage For="() => Input.Contrasena" class="text-danger" />
+                        </div>
+                        <div class="form-check mb-3">
+                            <InputCheckbox @bind-Value="Input.Recordarme" id="Input.Recordarme" class="form-check-input" />
+                            <label class="form-check-label" for="Input.Recordarme">
+                                Recuérdame
+                            </label>
+                        </div>
+                        <div class="d-grid gap-2">
+                            <button type="submit" class="btn btn-dark btn-lg rounded-pill">Iniciar Sesión</button>
+                        </div>
+                        <div class="text-center mt-3">
+                            <p>
+                                <NavLink href="Account/ForgotPassword">¿Olvidaste tu contraseña?</NavLink>
+                            </p>
+                            <p>
+                                <NavLink href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Registrar una nueva cuenta</NavLink>
+                            </p>
+                            <p>
+                                <NavLink href="Account/ResendEmailConfirmation">¿Re-enviar confirmación de email?</NavLink>
+                            </p>
+                        </div>
+                    </EditForm>
+
+                    <hr class="my-4" />
+
                 </div>
-                <div class="checkbox mb-3">
-                    <label class="form-label">
-                        <InputCheckbox @bind-Value="Input.RememberMe" class="darker-border-checkbox form-check-input" />
-                        Remember me
-                    </label>
-                </div>
-                <div>
-                    <button type="submit" class="w-100 btn btn-lg btn-primary">Log in</button>
-                </div>
-                <div>
-                    <p>
-                        <a href="Account/ForgotPassword">Forgot your password?</a>
-                    </p>
-                    <p>
-                        <a href="@(NavigationManager.GetUriWithQueryParameters("Account/Register", new Dictionary<string, object?> { ["ReturnUrl"] = ReturnUrl }))">Register as a new user</a>
-                    </p>
-                    <p>
-                        <a href="Account/ResendEmailConfirmation">Resend email confirmation</a>
-                    </p>
-                </div>
-            </EditForm>
-        </section>
-    </div>
-    <div class="col-lg-4 col-lg-offset-2">
-        <section>
-            <h3>Use another service to log in.</h3>
-            <hr />
-            <ExternalLoginPicker />
-        </section>
+            </div>
+        </div>
     </div>
 </div>
 
@@ -80,49 +83,46 @@
     {
         if (HttpMethods.IsGet(HttpContext.Request.Method))
         {
-            // Clear the existing external cookie to ensure a clean login process
             await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
         }
     }
 
-    public async Task LoginUser()
+    public async Task IniciarSesionUsuario()
     {
-        // This doesn't count login failures towards account lockout
-        // To enable password failures to trigger account lockout, set lockoutOnFailure: true
-        var result = await SignInManager.PasswordSignInAsync(Input.Email, Input.Password, Input.RememberMe, lockoutOnFailure: false);
-        if (result.Succeeded)
+        var resultado = await SignInManager.PasswordSignInAsync(Input.Email, Input.Contrasena, Input.Recordarme, lockoutOnFailure: false);
+        if (resultado.Succeeded)
         {
-            Logger.LogInformation("User logged in.");
+            Logger.LogInformation("Usuario ha iniciado sesión.");
             RedirectManager.RedirectTo(ReturnUrl);
         }
-        else if (result.RequiresTwoFactor)
+        else if (resultado.RequiresTwoFactor)
         {
             RedirectManager.RedirectTo(
                 "Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
+                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.Recordarme });
         }
-        else if (result.IsLockedOut)
+        else if (resultado.IsLockedOut)
         {
-            Logger.LogWarning("User account locked out.");
+            Logger.LogWarning("Cuenta de usuario bloqueada.");
             RedirectManager.RedirectTo("Account/Lockout");
         }
         else
         {
-            errorMessage = "Error: Invalid login attempt.";
+            errorMessage = "Error: Intento de inicio de sesión inválido.";
         }
     }
 
     private sealed class InputModel
     {
-        [Required]
-        [EmailAddress]
+        [Required(ErrorMessage = "El correo electrónico es obligatorio.")]
+        [EmailAddress(ErrorMessage = "Formato de correo electrónico no válido.")]
         public string Email { get; set; } = "";
 
-        [Required]
+        [Required(ErrorMessage = "La contraseña es obligatoria.")]
         [DataType(DataType.Password)]
-        public string Password { get; set; } = "";
+        public string Contrasena { get; set; } = "";
 
-        [Display(Name = "Remember me?")]
-        public bool RememberMe { get; set; }
+        [Display(Name = "¿Recordarme?")]
+        public bool Recordarme { get; set; }
     }
 }
