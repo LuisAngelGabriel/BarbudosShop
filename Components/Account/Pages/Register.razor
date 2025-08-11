@@ -113,7 +113,7 @@
             await EmailSender.SendConfirmationLinkAsync(usuario, Input.Email, HtmlEncoder.Default.Encode(urlCallback));
 
             RedirectManager.RedirectTo(
-                "Account/ConfirmacionRegistro",
+                "/Account/RegisterConfirmation",
                 new() { ["email"] = Input.Email, ["returnUrl"] = ReturnUrl });
             return;
         }
