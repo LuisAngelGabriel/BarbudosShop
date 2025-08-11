@@ -1,10 +1,12 @@
 ﻿@page "/"
 @using BarbudosShop.Services
 @using BarbudosShop.Models
+@using Blazored.Toast.Services
 @rendermode InteractiveServer
 @inject ProductoService ProductoService
 @inject NavigationManager NavigationManager
 @inject CarritoService CarritoService
+@inject IToastService ToastService
 @inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Barbudos Shop</PageTitle>
@@ -121,7 +123,7 @@
         catch (Exception ex)
         {
             productos = new List<Producto>();
-            Console.WriteLine($"Error al cargar productos: {ex.Message}");
+            // En un entorno de producción, registrarías el error
         }
         finally
         {
@@ -136,6 +138,7 @@
 
         if (!user.Identity?.IsAuthenticated ?? true)
         {
+            ToastService.ShowWarning("Debes iniciar sesión para agregar productos al carrito.");
             NavigationManager.NavigateTo("/Account/Login");
             return;
         }
@@ -152,9 +155,13 @@
 
             var agregado = await CarritoService.Agregar(item);
 
-            if (!agregado)
+            if (agregado)
             {
-                Console.WriteLine("Error agregando al carrito.");
+                ToastService.ShowSuccess("Producto agregado al carrito.");
+            }
+            else
+            {
+                ToastService.ShowError("Error al agregar el producto al carrito.");
             }
         }
     }
