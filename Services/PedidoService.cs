@@ -83,5 +83,16 @@ namespace BarbudosShop.Services
                 .OrderByDescending(p => p.FechaPedido)
                 .ToListAsync();
         }
+
+        public async Task<List<Pedido>> ListarTodosLosPedidosAsync()
+        {
+            await using var contexto = _dbFactory.CreateDbContext();
+
+            return await contexto.Pedidos
+                .Include(p => p.Detalles)
+                .ThenInclude(d => d.Producto)
+                .OrderByDescending(p => p.FechaPedido)
+                .ToListAsync();
+        }
     }
 }
