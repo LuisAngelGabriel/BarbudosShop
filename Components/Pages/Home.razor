@@ -1,8 +1,13 @@
 ﻿@page "/"
 @using BarbudosShop.Services
 @using BarbudosShop.Models
+@using Blazored.Toast.Services
+@rendermode InteractiveServer
 @inject ProductoService ProductoService
 @inject NavigationManager NavigationManager
+@inject CarritoService CarritoService
+@inject IToastService ToastService
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
 <PageTitle>Barbudos Shop</PageTitle>
 
@@ -55,7 +60,7 @@
 
                             <div class="mt-auto">
                                 <div class="d-flex justify-content-between align-items-center mb-2">
-                                    <h4 class="text-success mb-0">@producto.Precio.ToString("C")</h4>
+                                <h4 class="text-success mb-0">RD$ @producto.Precio.ToString("N2")</h4>
                                     <small class="text-muted">Stock: @producto.Cantidad</small>
                                 </div>
 
@@ -73,7 +78,7 @@
 
                                 @if (producto.Disponible && producto.Cantidad > 0)
                                 {
-                                    <button class="btn btn-primary w-100" @onclick="() => IrAlCarrito(producto.IdProducto)">Añadir al carrito</button>
+                                    <button class="btn btn-primary w-100" @onclick="() => AgregarAlCarrito(producto)">Añadir al carrito</button>
                                 }
                                 else
                                 {
@@ -86,12 +91,10 @@
             }
         </div>
 
-        <div class="row mt-4">
-            <div class="col-12 text-center">
-                <p class="text-muted">
-                    Mostrando @productos.Count producto@(productos.Count != 1 ? "s" : "") disponible@(productos.Count != 1 ? "s" : "")
-                </p>
-            </div>
+        <div class="d-flex justify-content-center my-5">
+            <a href="/sugerencias/crear" class="btn btn-info btn-lg">
+                <i class="bi bi-chat-left-text-fill me-2"></i> Envía tu Sugerencia
+            </a>
         </div>
     }
     else
@@ -120,7 +123,7 @@
         catch (Exception ex)
         {
             productos = new List<Producto>();
-            Console.WriteLine($"Error al cargar productos: {ex.Message}");
+            // En un entorno de producción, registrarías el error
         }
         finally
         {
@@ -128,9 +131,38 @@
         }
     }
 
-    private void IrAlCarrito(int productoId)
+    private async Task AgregarAlCarrito(Producto producto)
     {
-        NavigationManager.NavigateTo("/carrito");
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true)
+        {
+            ToastService.ShowWarning("Debes iniciar sesión para agregar productos al carrito.");
+            NavigationManager.NavigateTo("/Account/Login");
+            return;
+        }
+
+        var idUsuario = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (idUsuario != null)
+        {
+            var item = new ItemCarrito
+            {
+                IdUsuario = idUsuario,
+                IdProducto = producto.IdProducto
+            };
+
+            var agregado = await CarritoService.Agregar(item);
+
+            if (agregado)
+            {
+                ToastService.ShowSuccess("Producto agregado al carrito.");
+            }
+            else
+            {
+                ToastService.ShowError("Error al agregar el producto al carrito.");
+            }
+        }
     }
 }
-

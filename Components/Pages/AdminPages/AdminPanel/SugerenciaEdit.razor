@@ -1,0 +1,115 @@
+﻿@page "/sugerencias/editar/{Id:int}"
+@using BarbudosShop.Services
+@using BarbudosShop.Models
+@using Blazored.Toast.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+
+@inject SugerenciaService sugerenciaService
+@inject NavigationManager navigationManager
+@inject IToastService toast
+@inject IJSRuntime JS
+
+<PageTitle>Editar Sugerencia</PageTitle>
+
+<EditForm Model="sugerencia" OnValidSubmit="Guardar">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+
+    <div class="container mt-3">
+        <div class="card shadow">
+            <div class="card-header bg-primary text-white text-center">
+                <h5>Editar Sugerencia</h5>
+            </div>
+
+            <div class="card-body">
+                <div class="mb-3">
+                    <label class="form-label">ID Sugerencia</label>
+                    <InputNumber class="form-control" @bind-Value="sugerencia.SugerenciaId" readonly />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Nombre</label>
+                    <InputText class="form-control" @bind-Value="sugerencia.Nombre" />
+                    <ValidationMessage For="@(() => sugerencia.Nombre)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label">Descripción</label>
+                    <InputTextArea class="form-control" @bind-Value="sugerencia.Descripcion" rows="5" />
+                    <ValidationMessage For="@(() => sugerencia.Descripcion)" />
+                </div>
+            </div>
+
+            <div class="card-footer text-center">
+                <div class="btn-group">
+                    <button type="button" class="btn btn-secondary" @onclick="Volver">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="bi bi-check-circle"></i> Guardar
+                    </button>
+                    <button type="button" class="btn btn-danger" @onclick="EliminarSugerencia">
+                        <i class="bi bi-trash"></i> Eliminar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</EditForm>
+
+@code {
+    [Parameter]
+    public int Id { get; set; }
+
+    private BarbudosShop.Models.Sugerencia sugerencia = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        if (Id != 0)
+        {
+            var resultado = await sugerenciaService.Buscar(Id);
+            if (resultado != null)
+                sugerencia = resultado;
+            else
+                toast.ShowError("Sugerencia no encontrada.");
+        }
+    }
+
+    private async Task Guardar()
+    {
+        var resultado = await sugerenciaService.Guardar(sugerencia);
+        if (resultado)
+        {
+            toast.ShowSuccess("Sugerencia guardada correctamente.");
+            Volver();
+        }
+        else
+        {
+            toast.ShowError("Error al guardar la sugerencia.");
+        }
+    }
+
+    private void Volver()
+    {
+        navigationManager.NavigateTo("/admin/sugerencias");
+    }
+
+    private async Task EliminarSugerencia()
+    {
+        bool confirmar = await JS.InvokeAsync<bool>("confirm", "¿Estás seguro de que deseas eliminar esta sugerencia?");
+        if (!confirmar) return;
+
+        bool eliminado = await sugerenciaService.Eliminar(Id);
+        if (eliminado)
+        {
+            toast.ShowSuccess("Sugerencia eliminada correctamente.");
+            navigationManager.NavigateTo("/admin/sugerencias");
+        }
+        else
+        {
+            toast.ShowError("No se pudo eliminar la sugerencia.");
+        }
+    }
+}

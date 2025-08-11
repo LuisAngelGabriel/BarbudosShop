@@ -1,17 +1,32 @@
 using BarbudosShop.Data;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.AspNetCore.Http;
+using BarbudosShop.Data;
+using System.Threading.Tasks;
 
 namespace BarbudosShop.Components.Account
 {
-    internal sealed class IdentityUserAccessor(UserManager<ApplicationUser> userManager, IdentityRedirectManager redirectManager)
+    internal sealed class IdentityUserAccessor
     {
+        private readonly UserManager<ApplicationUser> userManager;
+        private readonly IdentityRedirectManager redirectManager;
+
+        public IdentityUserAccessor(UserManager<ApplicationUser> userManager, IdentityRedirectManager redirectManager)
+        {
+            this.userManager = userManager;
+            this.redirectManager = redirectManager;
+        }
+
         public async Task<ApplicationUser> GetRequiredUserAsync(HttpContext context)
         {
             var user = await userManager.GetUserAsync(context.User);
 
             if (user is null)
             {
-                redirectManager.RedirectToWithStatus("Account/InvalidUser", $"Error: Unable to load user with ID '{userManager.GetUserId(context.User)}'.", context);
+                redirectManager.RedirectToWithStatus(
+                    "Account/InvalidUser",
+                    $"Error: Unable to load user with ID '{userManager.GetUserId(context.User)}'.",
+                    context);
             }
 
             return user;

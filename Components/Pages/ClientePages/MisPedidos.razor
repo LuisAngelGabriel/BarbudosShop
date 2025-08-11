@@ -1,0 +1,111 @@
+﻿@page "/mispedidos"
+@using BarbudosShop.Models
+@using BarbudosShop.Services
+@using Microsoft.AspNetCore.Components.Authorization
+@using BarbudosShop.Data
+@rendermode InteractiveServer
+@inject PedidoService PedidoService
+@inject NavigationManager NavigationManager
+
+<PageTitle>Mis Pedidos</PageTitle>
+
+<div class="container py-4">
+    <h2 class="text-center mb-4">Mis Pedidos</h2>
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando...</span>
+            </div>
+        </div>
+    }
+    else if (pedidos == null || !pedidos.Any())
+    {
+        <div class="alert alert-info text-center">
+            Aún no has realizado ningún pedido. <a href="/">Ir a la tienda</a>
+        </div>
+    }
+    else
+    {
+        @foreach (var pedido in pedidos)
+        {
+            <div class="card mb-4">
+                <div class="card-header bg-primary text-white">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <strong>Pedido #@pedido.Id</strong>
+                            <small class="ms-3">Fecha: @pedido.FechaPedido.ToShortDateString()</small>
+                        </div>
+                        <div>
+                            <strong>Total: @pedido.Total.ToString("C")</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <h5>Productos:</h5>
+                    <ul class="list-group list-group-flush">
+                        @if (pedido.Detalles != null)
+                        {
+                            @foreach (var detalle in pedido.Detalles)
+                            {
+                                <li class="list-group-item d-flex justify-content-between align-items-center">
+                                    <span>@detalle.Cantidad x @(detalle.Producto?.Nombre ?? "Producto no disponible")</span>
+                                    <span>@((detalle.Cantidad * detalle.PrecioUnitario).ToString("C"))</span>
+                                </li>
+                            }
+                        }
+                    </ul>
+                    <hr />
+                    <h5>Dirección de Envío:</h5>
+                    <address class="mb-0">
+                        @pedido.Calle, @pedido.Sector<br />
+                        @pedido.Ciudad, @pedido.Provincia<br />
+                        Teléfono: @pedido.Telefono
+                    </address>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    [CascadingParameter]
+    private Task<AuthenticationState> authenticationStateTask { get; set; }
+
+    private List<Pedido>? pedidos;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await authenticationStateTask;
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/Account/Login");
+            return;
+        }
+
+        var idUsuario = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+
+        if (string.IsNullOrEmpty(idUsuario))
+        {
+            NavigationManager.NavigateTo("/Account/Login");
+            return;
+        }
+
+        try
+        {
+            pedidos = await PedidoService.ListarPedidosPorUsuario(idUsuario);
+        }
+        catch
+        {
+            pedidos = new List<Pedido>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

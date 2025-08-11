@@ -1,0 +1,85 @@
+﻿@page "/admin/sugerencias"
+@using BarbudosShop.Services
+@using BarbudosShop.Models
+@using Blazored.Toast.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+
+@inject SugerenciaService sugerenciaService
+@inject NavigationManager navigationManager
+@inject IToastService toast
+
+<PageTitle>Sugerencias</PageTitle>
+
+<div class="container">
+    <div class="card shadow-lg">
+        <div class="card-header bg-dark text-white d-flex justify-content-between align-items-center position-relative">
+            <h5 class="card-title mb-0 text-center w-100">Sugerencias de Clientes</h5>
+        </div>
+        <div class="card-body">
+            @if (ListaSugerencias == null)
+            {
+                <p><em>Cargando sugerencias...</em></p>
+            }
+            else if (ListaSugerencias.Count == 0)
+            {
+                <p>No se han encontrado sugerencias.</p>
+            }
+            else
+            {
+                <table class="table table-hover mt-3">
+                    <thead class="table-light">
+                        <tr>
+                            <th>ID</th>
+                            <th>Nombre</th>
+                            <th>Descripción</th>
+                            <th>Fecha</th>
+                            <th class="text-center">Acciones</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var s in ListaSugerencias)
+                        {
+                            <tr>
+                                <td>@s.SugerenciaId</td>
+                                <td>@s.Nombre</td>
+                                <td>@s.Descripcion</td>
+                                <td>@s.Fecha.ToString("dd/MM/yyyy HH:mm")</td>
+                                <td class="text-center">
+                                    <a class="btn btn-outline-primary bi bi-pencil-square" href="/sugerencias/editar/@s.SugerenciaId"></a>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            }
+        </div>
+        <div class="card-footer d-flex justify-content-between">
+            <span>Cantidad: @ListaSugerencias?.Count</span>
+        </div>
+    </div>
+</div>
+
+@code {
+    // Uso el namespace completo para evitar conflictos
+    private List<BarbudosShop.Models.Sugerencia> ListaSugerencias = new();
+
+    protected override async Task OnInitializedAsync()
+    {
+        await CargarDatos();
+    }
+
+    private async Task CargarDatos()
+    {
+        try
+        {
+            ListaSugerencias = await sugerenciaService.Listar(s => true);
+        }
+        catch (Exception ex)
+        {
+            toast.ShowError($"Error al cargar las sugerencias: {ex.Message}");
+            ListaSugerencias = new List<BarbudosShop.Models.Sugerencia>();
+        }
+    }
+}

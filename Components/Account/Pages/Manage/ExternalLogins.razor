@@ -12,7 +12,11 @@
 
 <PageTitle>Manage your external logins</PageTitle>
 
-<StatusMessage />
+@if (!string.IsNullOrEmpty(message))
+{
+    <div class="alert alert-info">@message</div>
+}
+
 @if (currentLogins?.Count > 0)
 {
     <h3>Registered Logins</h3>
@@ -70,6 +74,7 @@
     private IList<UserLoginInfo>? currentLogins;
     private IList<AuthenticationScheme>? otherLogins;
     private bool showRemoveButton;
+    private string? message;
 
     [CascadingParameter]
     private HttpContext HttpContext { get; set; } = default!;
@@ -110,11 +115,14 @@
         var result = await UserManager.RemoveLoginAsync(user, LoginProvider!, ProviderKey!);
         if (!result.Succeeded)
         {
-            RedirectManager.RedirectToCurrentPageWithStatus("Error: The external login was not removed.", HttpContext);
+            message = "Error: The external login was not removed.";
+            StateHasChanged();
+            return;
         }
 
         await SignInManager.RefreshSignInAsync(user);
-        RedirectManager.RedirectToCurrentPageWithStatus("The external login was removed.", HttpContext);
+        message = "The external login was removed.";
+        StateHasChanged();
     }
 
     private async Task OnGetLinkLoginCallbackAsync()
@@ -123,18 +131,22 @@
         var info = await SignInManager.GetExternalLoginInfoAsync(userId);
         if (info is null)
         {
-            RedirectManager.RedirectToCurrentPageWithStatus("Error: Could not load external login info.", HttpContext);
+            message = "Error: Could not load external login info.";
+            StateHasChanged();
+            return;
         }
 
         var result = await UserManager.AddLoginAsync(user, info);
         if (!result.Succeeded)
         {
-            RedirectManager.RedirectToCurrentPageWithStatus("Error: The external login was not added. External logins can only be associated with one account.", HttpContext);
+            message = "Error: The external login was not added. External logins can only be associated with one account.";
+            StateHasChanged();
+            return;
         }
 
-        // Clear the existing external cookie to ensure a clean login process
         await HttpContext.SignOutAsync(IdentityConstants.ExternalScheme);
 
-        RedirectManager.RedirectToCurrentPageWithStatus("The external login was added.", HttpContext);
+        message = "The external login was added.";
+        StateHasChanged();
     }
 }
