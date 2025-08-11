@@ -4,6 +4,7 @@ using BarbudosShop.Data;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
 using Microsoft.EntityFrameworkCore.Metadata;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 
 #nullable disable
@@ -11,9 +12,11 @@ using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 namespace BarbudosShop.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    partial class ApplicationDbContextModelSnapshot : ModelSnapshot
+    [Migration("20250807231448_agregandollaveforanea")]
+    partial class agregandollaveforanea
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder
@@ -109,6 +112,39 @@ namespace BarbudosShop.Migrations
                     b.ToTable("Categorias");
                 });
 
+            modelBuilder.Entity("BarbudosShop.Models.ItemCarrito", b =>
+                {
+                    b.Property<int>("Id")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("int");
+
+                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
+
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("datetime2");
+
+                    b.Property<int>("IdProducto")
+                        .HasColumnType("int");
+
+                    b.Property<string>("IdUsuario")
+                        .IsRequired()
+                        .HasColumnType("nvarchar(max)");
+
+                    b.Property<int>("ProductoIdProducto")
+                        .HasColumnType("int");
+
+                    b.Property<string>("UsuarioId")
+                        .HasColumnType("nvarchar(450)");
+
+                    b.HasKey("Id");
+
+                    b.HasIndex("ProductoIdProducto");
+
+                    b.HasIndex("UsuarioId");
+
+                    b.ToTable("ItemsCarrito");
+                });
+
             modelBuilder.Entity("BarbudosShop.Models.Producto", b =>
                 {
                     b.Property<int>("IdProducto")
@@ -118,6 +154,9 @@ namespace BarbudosShop.Migrations
                     SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("IdProducto"));
 
                     b.Property<int>("Cantidad")
+                        .HasColumnType("int");
+
+                    b.Property<int?>("CategoriaIdCategoria")
                         .HasColumnType("int");
 
                     b.Property<string>("Descripcion")
@@ -153,68 +192,9 @@ namespace BarbudosShop.Migrations
 
                     b.HasKey("IdProducto");
 
-                    b.HasIndex("IdCategoria");
+                    b.HasIndex("CategoriaIdCategoria");
 
                     b.ToTable("Productos");
-                });
-
-            modelBuilder.Entity("BarbudosShop.Models.Sugerencia", b =>
-                {
-                    b.Property<int>("SugerenciaId")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("SugerenciaId"));
-
-                    b.Property<string>("Descripcion")
-                        .IsRequired()
-                        .HasMaxLength(500)
-                        .HasColumnType("nvarchar(500)");
-
-                    b.Property<DateTime>("Fecha")
-                        .HasColumnType("datetime2");
-
-                    b.Property<string>("Nombre")
-                        .IsRequired()
-                        .HasMaxLength(50)
-                        .HasColumnType("nvarchar(50)");
-
-                    b.HasKey("SugerenciaId");
-
-                    b.ToTable("Sugerencias");
-                });
-
-            modelBuilder.Entity("ItemCarrito", b =>
-                {
-                    b.Property<int>("Id")
-                        .ValueGeneratedOnAdd()
-                        .HasColumnType("int");
-
-                    SqlServerPropertyBuilderExtensions.UseIdentityColumn(b.Property<int>("Id"));
-
-                    b.Property<int>("Cantidad")
-                        .HasColumnType("int");
-
-                    b.Property<DateTime>("FechaCreacion")
-                        .HasColumnType("datetime2");
-
-                    b.Property<int>("IdProducto")
-                        .HasColumnType("int");
-
-                    b.Property<string>("IdUsuario")
-                        .IsRequired()
-                        .HasColumnType("nvarchar(max)");
-
-                    b.Property<string>("UsuarioId")
-                        .HasColumnType("nvarchar(450)");
-
-                    b.HasKey("Id");
-
-                    b.HasIndex("IdProducto");
-
-                    b.HasIndex("UsuarioId");
-
-                    b.ToTable("ItemsCarrito");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRole", b =>
@@ -350,22 +330,11 @@ namespace BarbudosShop.Migrations
                     b.ToTable("AspNetUserTokens", (string)null);
                 });
 
-            modelBuilder.Entity("BarbudosShop.Models.Producto", b =>
-                {
-                    b.HasOne("BarbudosShop.Models.Categoria", "Categoria")
-                        .WithMany()
-                        .HasForeignKey("IdCategoria")
-                        .OnDelete(DeleteBehavior.Restrict)
-                        .IsRequired();
-
-                    b.Navigation("Categoria");
-                });
-
-            modelBuilder.Entity("ItemCarrito", b =>
+            modelBuilder.Entity("BarbudosShop.Models.ItemCarrito", b =>
                 {
                     b.HasOne("BarbudosShop.Models.Producto", "Producto")
                         .WithMany()
-                        .HasForeignKey("IdProducto")
+                        .HasForeignKey("ProductoIdProducto")
                         .OnDelete(DeleteBehavior.Cascade)
                         .IsRequired();
 
@@ -376,6 +345,15 @@ namespace BarbudosShop.Migrations
                     b.Navigation("Producto");
 
                     b.Navigation("Usuario");
+                });
+
+            modelBuilder.Entity("BarbudosShop.Models.Producto", b =>
+                {
+                    b.HasOne("BarbudosShop.Models.Categoria", "Categoria")
+                        .WithMany()
+                        .HasForeignKey("CategoriaIdCategoria");
+
+                    b.Navigation("Categoria");
                 });
 
             modelBuilder.Entity("Microsoft.AspNetCore.Identity.IdentityRoleClaim<string>", b =>
