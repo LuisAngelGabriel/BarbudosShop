@@ -22,10 +22,11 @@ namespace BarbudosShop.Models
         [RegularExpression(@"^\d{10}$", ErrorMessage = "El teléfono debe tener 10 dígitos.")]
         public string Telefono { get; set; } = string.Empty;
 
-        // Propiedades de la tarjeta de crédito
         [Required(ErrorMessage = "El número de tarjeta es obligatorio.")]
-        [CreditCard(ErrorMessage = "El número de tarjeta no es válido.")]
+        [StringLength(16, MinimumLength = 16, ErrorMessage = "El número de tarjeta debe tener 16 dígitos.")]
+        [RegularExpression(@"^\d{16}$", ErrorMessage = "El número de tarjeta debe contener solo números y tener 16 dígitos.")]
         public string NumeroTarjeta { get; set; } = string.Empty;
+
 
         [Required(ErrorMessage = "El CVC es obligatorio.")]
         [StringLength(3, ErrorMessage = "El CVC debe tener 3 dígitos.")]
