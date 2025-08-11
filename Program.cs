@@ -1,4 +1,4 @@
-﻿using BarbudosShop.Components;
+using BarbudosShop.Components;
 using BarbudosShop.Components.Account;
 using BarbudosShop.Data;
 using BarbudosShop.Services;
@@ -13,13 +13,15 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddRazorComponents().AddInteractiveServerComponents();
 builder.Services.AddBlazoredToast();
 builder.Services.AddRazorPages();
+
 builder.Services.AddScoped<ProductoService>();
 builder.Services.AddScoped<CategoriaService>();
+builder.Services.AddScoped<CarritoService>();
+builder.Services.AddScoped<SugerenciaService>();
+builder.Services.AddScoped<BarbudosShop.Services.PedidoService>();
 
-
-builder.Services.AddCascadingAuthenticationState();
-builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 builder.Services.AddScoped<IdentityRedirectManager>();
+builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
 
 var connectionString = builder.Configuration.GetConnectionString("DefaultConnection")
     ?? throw new InvalidOperationException("Connection string 'DefaultConnection' not found.");
@@ -32,9 +34,15 @@ builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 builder.Services.AddIdentity<ApplicationUser, IdentityRole>(options =>
 {
     options.SignIn.RequireConfirmedAccount = true;
+    options.Password.RequireDigit = true;
+    options.Password.RequireLowercase = true;
+    options.Password.RequireUppercase = true;
+    options.Password.RequireNonAlphanumeric = false;
+    options.Password.RequiredLength = 6;
+    options.Password.RequiredUniqueChars = 1;
 })
-    .AddEntityFrameworkStores<ApplicationDbContext>()
-    .AddDefaultTokenProviders();
+.AddEntityFrameworkStores<ApplicationDbContext>()
+.AddDefaultTokenProviders();
 
 builder.Services.AddSingleton<IEmailSender<ApplicationUser>, IdentityNoOpEmailSender>();
 
@@ -45,7 +53,6 @@ builder.Services.Configure<FormOptions>(options =>
 
 var app = builder.Build();
 
-
 using (var scope = app.Services.CreateScope())
 {
     var services = scope.ServiceProvider;
@@ -54,10 +61,13 @@ using (var scope = app.Services.CreateScope())
     var userManager = services.GetRequiredService<UserManager<ApplicationUser>>();
 
     string[] roles = { "Admin", "Cliente" };
+
     foreach (var role in roles)
     {
         if (!await roleManager.RoleExistsAsync(role))
+        {
             await roleManager.CreateAsync(new IdentityRole(role));
+        }
     }
 
     var adminEmail = "admin@gmail.com";
@@ -74,6 +84,10 @@ using (var scope = app.Services.CreateScope())
         if (result.Succeeded)
         {
             await userManager.AddToRoleAsync(adminUser, "Admin");
+        }
+        else
+        {
+            throw new Exception($"Error creando usuario Admin: {string.Join(", ", result.Errors.Select(e => e.Description))}");
         }
     }
 
@@ -92,6 +106,24 @@ using (var scope = app.Services.CreateScope())
         {
             await userManager.AddToRoleAsync(clienteUser, "Cliente");
         }
+        else
+        {
+            throw new Exception($"Error creando usuario Cliente: {string.Join(", ", result.Errors.Select(e => e.Description))}");
+        }
+    }
+
+    var usuarios = userManager.Users.ToList();
+    foreach (var usuario in usuarios)
+    {
+        if (!usuario.EmailConfirmed)
+        {
+            usuario.EmailConfirmed = true;
+            var updateResult = await userManager.UpdateAsync(usuario);
+            if (!updateResult.Succeeded)
+            {
+                throw new Exception($"Error confirmando email para usuario {usuario.Email}: {string.Join(", ", updateResult.Errors.Select(e => e.Description))}");
+            }
+        }
     }
 }
 
@@ -101,21 +133,20 @@ if (app.Environment.IsDevelopment())
 }
 else
 {
-    app.UseExceptionHandler("/Error");
+    app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
 }
 
 app.UseHttpsRedirection();
 app.UseStaticFiles();
-
 app.UseRouting();
-
 app.UseAuthentication();
 app.UseAuthorization();
-
 app.UseAntiforgery();
 
-app.MapRazorComponents<App>().AddInteractiveServerRenderMode();
+app.MapRazorComponents<App>()
+    .AddInteractiveServerRenderMode();
+
 app.MapRazorPages();
 
 app.Run();

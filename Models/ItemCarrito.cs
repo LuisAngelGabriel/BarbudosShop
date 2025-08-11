@@ -1,22 +1,23 @@
 ﻿using BarbudosShop.Data;
-using System; 
+using BarbudosShop.Models;
 using System.ComponentModel.DataAnnotations;
 using System.ComponentModel.DataAnnotations.Schema;
-namespace BarbudosShop.Models
+
+public class ItemCarrito
 {
-    public class ItemCarrito
-    {
-        [Key]
+    [Key]
+    public int Id { get; set; }
 
-        public int Id { get; set; }
+    public string IdUsuario { get; set; } = string.Empty;
 
-        [ForeignKey(nameof(IdUsuario))]
-        public string IdUsuario { get; set; }
+    [Required]
+    public int Cantidad { get; set; }
 
-        public DateTime FechaCreacion { get; set; } = DateTime.Now;
+    public DateTime FechaCreacion { get; set; } = DateTime.Now;
 
-        public ApplicationUser Usuario { get; set; }
+    public ApplicationUser Usuario { get; set; }
 
-
-    }
+    [ForeignKey(nameof(Producto))]
+    public int IdProducto { get; set; }
+    public Producto Producto { get; set; }
 }

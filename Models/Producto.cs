@@ -10,8 +10,10 @@ namespace BarbudosShop.Models
         public int IdProducto { get; set; }
 
         [Required(ErrorMessage = "La categoría es obligatoria.")]
-        [ForeignKey(nameof(IdCategoria))]
         public int IdCategoria { get; set; }
+
+        [ForeignKey("IdCategoria")]
+        public Categoria? Categoria { get; set; }
 
         [Required(ErrorMessage = "El nombre es obligatorio.")]
         [StringLength(100, ErrorMessage = "El nombre no puede tener más de 100 caracteres.")]
@@ -38,7 +40,5 @@ namespace BarbudosShop.Models
         public DateTime FechaEntrada { get; set; }
 
         public bool Disponible { get; set; } = true;
-
-        public Categoria? Categoria { get; set; }
     }
 }

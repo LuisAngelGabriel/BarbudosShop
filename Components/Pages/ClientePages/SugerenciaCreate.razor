@@ -1,0 +1,90 @@
+﻿@page "/sugerencias/crear"
+@using BarbudosShop.Services
+@using BarbudosShop.Models
+@rendermode InteractiveServer
+@using Blazored.Toast.Services
+
+@inject IToastService Toast
+@inject SugerenciaService SugerenciaService
+@inject NavigationManager Navigation
+
+<PageTitle>Crear Sugerencia</PageTitle>
+
+<div class="container mt-4">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white text-center">
+            <h5>Envía tu Sugerencia</h5>
+        </div>
+        <div class="card-body">
+            <EditForm Model="sugerencia" OnValidSubmit="GuardarSugerencia">
+                <DataAnnotationsValidator />
+                <ValidationSummary />
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Tu Nombre</label>
+                    <InputText class="form-control" @bind-Value="sugerencia.Nombre" />
+                    <ValidationMessage For="@(() => sugerencia.Nombre)" />
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label fw-bold">Descripción de la Sugerencia</label>
+                    <InputTextArea class="form-control" @bind-Value="sugerencia.Descripcion" rows="5" />
+                    <ValidationMessage For="@(() => sugerencia.Descripcion)" />
+                </div>
+
+                <div class="d-flex justify-content-between mt-4">
+                    <button type="button" class="btn btn-secondary btn-lg" @onclick="Volver">
+                        <i class="bi bi-arrow-left"></i> Volver
+                    </button>
+
+                    <button class="btn btn-success btn-lg" type="submit" disabled="@isSubmitting">
+                        @if (isSubmitting)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                            <text> Enviando...</text>
+                        }
+                        else
+                        {
+                            <i class="bi bi-send"></i>
+                            <text> Enviar</text>
+                        }
+                    </button>
+                </div>
+            </EditForm>
+        </div>
+    </div>
+</div>
+
+@code {
+    private Sugerencia sugerencia = new();
+    private bool isSubmitting = false;
+
+    private async Task GuardarSugerencia()
+    {
+        if (isSubmitting) return;
+
+        isSubmitting = true;
+        StateHasChanged();
+
+        try
+        {
+            await SugerenciaService.Guardar(sugerencia);
+            Toast.ShowSuccess("¡Gracias por tu sugerencia! La hemos recibido correctamente.");
+            sugerencia = new Sugerencia();
+        }
+        catch (Exception ex)
+        {
+            Toast.ShowError($"Error inesperado al enviar: {ex.Message}");
+        }
+        finally
+        {
+            isSubmitting = false;
+            StateHasChanged();
+        }
+    }
+
+    private void Volver()
+    {
+        Navigation.NavigateTo("/");
+    }
+}

@@ -1,7 +1,11 @@
 ﻿@inherits LayoutComponentBase
+@implements IDisposable
 @inject NavigationManager Navigation
 @inject AuthenticationStateProvider AuthenticationStateProvider
+@inject BarbudosShop.Services.CarritoService CarritoService
+@using Blazored.Toast.Configuration
 @using Microsoft.AspNetCore.Components.Authorization
+@using Blazored.Toast
 
 <PageTitle>Barbudos Shop</PageTitle>
 
@@ -28,10 +32,21 @@
                                 <li><a class="dropdown-item" href="/CategoriaCreate">Crear Categoría</a></li>
                             </ul>
                         </li>
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/admin">Panel Admin</a>
+                        </li>
                     }
-
+                    @if (isAuthenticated)
+                    {
+                        <li class="nav-item">
+                            <a class="nav-link text-white" href="/mispedidos">Mis Pedidos</a>
+                        </li>
+                    }
                     <li class="nav-item">
                         <a class="nav-link text-white" href="/contact">Contacto</a>
+                    </li>
+                    <li class="nav-item">
+                        <a class="nav-link text-white" href="/nosotros">Nosotros</a>
                     </li>
                 </ul>
 
@@ -39,12 +54,14 @@
                     <li class="nav-item">
                         <a class="nav-link position-relative" href="/carrito">
                             <i class="bi bi-cart4 fs-5"></i>
-                            <span class="badge bg-danger text-white position-absolute top-0 start-100 translate-middle rounded-pill px-2">
-                                @cantidadEnCarrito
-                            </span>
+                            @if (cantidadEnCarrito > 0)
+                            {
+                                <span class="badge bg-danger text-white position-absolute top-0 start-100 translate-middle rounded-pill px-2">
+                                    @cantidadEnCarrito
+                                </span>
+                            }
                         </a>
                     </li>
-
                     <li class="nav-item dropdown">
                         <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">
                             <i class="bi bi-person-circle fs-5"></i>
@@ -68,7 +85,7 @@
         </div>
     </header>
 
-    <main class="container my-4">
+    <main class="container my-4 flex-grow-1">
         @Body
     </main>
 
@@ -77,23 +94,72 @@
     </footer>
 </div>
 
+<BlazoredToasts Position="ToastPosition.BottomRight"
+                Timeout="3"
+                IconType="IconType.FontAwesome"
+                SuccessClass="success-toast-override"
+                ErrorClass="error-toast-override"
+                InfoClass="info-toast-override" />
+
 @code {
     private int cantidadEnCarrito = 0;
     private string userName = "";
     private bool isAuthenticated = false;
     private bool isAdmin = false;
+    private string? userId;
 
     protected override async Task OnInitializedAsync()
     {
+        CarritoService.OnChange += OnCarritoChange;
+        AuthenticationStateProvider.AuthenticationStateChanged += OnAuthenticationStateChanged;
+        await CargarDatosUsuarioYCarrito();
+    }
+
+    private async void OnAuthenticationStateChanged(Task<AuthenticationState> authenticationStateTask)
+    {
+        await CargarDatosUsuarioYCarrito();
+        await InvokeAsync(StateHasChanged);
+    }
+
+    private async Task CargarDatosUsuarioYCarrito()
+    {
         var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
         var user = authState.User;
-
         isAuthenticated = user.Identity?.IsAuthenticated ?? false;
 
         if (isAuthenticated)
         {
             userName = user.Identity?.Name ?? "";
             isAdmin = user.IsInRole("Admin");
+
+            userId = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+            if (userId != null)
+            {
+                cantidadEnCarrito = await CarritoService.ObtenerCantidad(userId);
+            }
         }
+        else
+        {
+            cantidadEnCarrito = 0;
+            userId = null;
+        }
+    }
+
+    private void OnCarritoChange()
+    {
+        InvokeAsync(async () =>
+        {
+            if (userId != null)
+            {
+                cantidadEnCarrito = await CarritoService.ObtenerCantidad(userId);
+                StateHasChanged();
+            }
+        });
+    }
+
+    public void Dispose()
+    {
+        CarritoService.OnChange -= OnCarritoChange;
+        AuthenticationStateProvider.AuthenticationStateChanged -= OnAuthenticationStateChanged;
     }
 }

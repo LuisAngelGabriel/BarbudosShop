@@ -61,9 +61,18 @@
                                 <td>@producto.IdProducto</td>
                                 <td>@producto.Nombre</td>
                                 <td>@producto.Marca</td>
-                                <td>@producto.Precio.ToString("C")</td>
+                                <td>@($"RD$ {producto.Precio:N2}")</td>
                                 <td>@producto.Cantidad</td>
-                                <td>@producto.Categoria?.Nombre</td>
+                                <td>
+                                    @if (producto.Categoria != null)
+                                    {
+                                        @producto.Categoria.Nombre
+                                    }
+                                    else
+                                    {
+                                        <em class="text-muted">Sin categoría</em>
+                                    }
+                                </td>
                                 <td class="text-center">
                                     <a href="/productos/editar/@producto.IdProducto" class="btn btn-outline-primary bi bi-pencil-square"></a>
                                 </td>
@@ -79,7 +88,7 @@
         </div>
 
         <div class="card-footer d-flex justify-content-between">
-            <span>Cantidad: @ListaProductos?.Count</span>     
+            <span>Cantidad: @ListaProductos?.Count</span>
         </div>
     </div>
 </div>
@@ -141,12 +150,5 @@
             toast.ShowError($"Error al buscar productos: {ex.Message}");
             ListaProductos = new List<Producto>();
         }
-    }
-
-    private async Task RefrescarLista()
-    {
-        toast.ShowInfo("Refrescando lista de productos...");
-        await CargarDatos();
-        StateHasChanged();
     }
 }

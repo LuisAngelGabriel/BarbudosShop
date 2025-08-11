@@ -1,0 +1,175 @@
+﻿@page "/pago"
+@using BarbudosShop.Models
+@using BarbudosShop.Services
+@using Blazored.Toast.Services
+@rendermode InteractiveServer
+@inject CarritoService CarritoService
+@inject PedidoService PedidoService
+@inject AuthenticationStateProvider AuthenticationStateProvider
+@inject NavigationManager NavigationManager
+@inject IToastService toastService
+
+<PageTitle>Confirmar Pago</PageTitle>
+
+<div class="container py-4">
+    <h2 class="text-center mb-4">Confirmar Pedido y Dirección de Envío</h2>
+
+    @if (isLoading)
+    {
+        <p class="text-center">Cargando detalles del pedido...</p>
+    }
+    else if (items == null || items.Count == 0)
+    {
+        <div class="alert alert-info text-center">
+            Tu carrito está vacío. <a href="/">Ir a la tienda</a>
+        </div>
+    }
+    else
+    {
+        <div class="row">
+            <div class="col-md-6">
+                <h4>Detalles de la Dirección</h4>
+                <EditForm Model="direccionEnvio" OnValidSubmit="ProcesarPago">
+                    <DataAnnotationsValidator />
+                    <div class="mb-3">
+                        <label for="calle" class="form-label">Calle y Número</label>
+                        <InputText id="calle" class="form-control" @bind-Value="direccionEnvio.Calle" />
+                        <ValidationMessage For="@(() => direccionEnvio.Calle)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="sector" class="form-label">Sector</label>
+                        <InputText id="sector" class="form-control" @bind-Value="direccionEnvio.Sector" />
+                        <ValidationMessage For="@(() => direccionEnvio.Sector)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="ciudad" class="form-label">Ciudad</label>
+                        <InputText id="ciudad" class="form-control" @bind-Value="direccionEnvio.Ciudad" />
+                        <ValidationMessage For="@(() => direccionEnvio.Ciudad)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="provincia" class="form-label">Provincia</label>
+                        <InputText id="provincia" class="form-control" @bind-Value="direccionEnvio.Provincia" />
+                        <ValidationMessage For="@(() => direccionEnvio.Provincia)" />
+                    </div>
+                    <div class="mb-3">
+                        <label for="telefono" class="form-label">Teléfono</label>
+                        <InputText id="telefono" class="form-control" @bind-Value="direccionEnvio.Telefono" />
+                        <ValidationMessage For="@(() => direccionEnvio.Telefono)" />
+                    </div>
+
+                    <h4 class="mt-4">Datos de la Tarjeta</h4>
+                    <div class="mb-3">
+                        <label for="numeroTarjeta" class="form-label">Número de Tarjeta</label>
+                        <InputText id="numeroTarjeta" class="form-control" @bind-Value="direccionEnvio.NumeroTarjeta" />
+                        <ValidationMessage For="@(() => direccionEnvio.NumeroTarjeta)" />
+                    </div>
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <label for="fechaVencimiento" class="form-label">Fecha de Vencimiento (MM/AA)</label>
+                            <InputText id="fechaVencimiento" class="form-control" @bind-Value="direccionEnvio.FechaVencimiento" placeholder="MM/AA" />
+                            <ValidationMessage For="@(() => direccionEnvio.FechaVencimiento)" />
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <label for="cvc" class="form-label">CVC</label>
+                            <InputText id="cvc" class="form-control" @bind-Value="direccionEnvio.Cvc" />
+                            <ValidationMessage For="@(() => direccionEnvio.Cvc)" />
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label for="nombreEnTarjeta" class="form-label">Nombre en la Tarjeta</label>
+                        <InputText id="nombreEnTarjeta" class="form-control" @bind-Value="direccionEnvio.NombreEnTarjeta" />
+                        <ValidationMessage For="@(() => direccionEnvio.NombreEnTarjeta)" />
+                    </div>
+
+                    <button type="submit" class="btn btn-success btn-lg w-100 mt-4" disabled="@isProcessing">
+                        @if (isProcessing)
+                        {
+                            <span class="spinner-border spinner-border-sm" role="status" aria-hidden="true"></span>
+                        }
+                        else
+                        {
+                            <span>Confirmar y Pagar RD$ @totalCarrito.ToString("N2")</span>
+                        }
+                    </button>
+                </EditForm>
+            </div>
+            <div class="col-md-6">
+                <h4>Resumen del Pedido</h4>
+                <ul class="list-group">
+                    @foreach (var item in items)
+                    {
+                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                            <span>@item.Producto?.Nombre (@item.Cantidad x @((item.Producto?.Precio ?? 0).ToString("C")))</span>
+                            <strong>@((item.Cantidad * (item.Producto?.Precio ?? 0)).ToString("C"))</strong>
+                        </li>
+                    }
+                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                        <strong>Total del Carrito:</strong>
+                        <strong>@totalCarrito.ToString("C")</strong>
+                    </li>
+                </ul>
+            </div>
+        </div>
+    }
+</div>
+
+@code {
+    private List<ItemCarrito>? items;
+    private bool isLoading = true;
+    private bool isProcessing = false;
+    private string? idUsuario;
+    private decimal totalCarrito = 0;
+    private DireccionEnvioViewModel direccionEnvio = new DireccionEnvioViewModel();
+
+    protected override async Task OnInitializedAsync()
+    {
+        var authState = await AuthenticationStateProvider.GetAuthenticationStateAsync();
+        var user = authState.User;
+
+        if (!user.Identity?.IsAuthenticated ?? true)
+        {
+            NavigationManager.NavigateTo("/Account/Login");
+            return;
+        }
+
+        idUsuario = user.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+        if (string.IsNullOrEmpty(idUsuario))
+        {
+            NavigationManager.NavigateTo("/Account/Login");
+            return;
+        }
+
+        await CargarCarrito();
+    }
+
+    private async Task CargarCarrito()
+    {
+        isLoading = true;
+        items = await CarritoService.ListarPorUsuario(idUsuario!);
+        if (items != null)
+        {
+            totalCarrito = items.Sum(item => item.Cantidad * (item.Producto?.Precio ?? 0));
+        }
+        isLoading = false;
+        StateHasChanged();
+    }
+
+    private async Task ProcesarPago()
+    {
+        isProcessing = true;
+
+        var compraExitosa = await PedidoService.ProcesarPedido(idUsuario!, direccionEnvio, items!);
+
+        if (compraExitosa)
+        {
+            await CarritoService.Vaciar(idUsuario!);
+            toastService.ShowSuccess("¡Tu pedido ha sido realizado con éxito!");
+            NavigationManager.NavigateTo("/mispedidos");
+        }
+        else
+        {
+            toastService.ShowError("No se pudo procesar el pago. Intenta de nuevo.");
+        }
+        isProcessing = false;
+    }
+}
