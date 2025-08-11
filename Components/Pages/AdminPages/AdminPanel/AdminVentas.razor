@@ -1,0 +1,98 @@
+﻿@page "/admin/ventas"
+@using BarbudosShop.Models
+@using BarbudosShop.Services
+@using Microsoft.AspNetCore.Authorization
+@attribute [Authorize(Roles = "Admin")]
+@rendermode InteractiveServer
+@inject PedidoService PedidoService
+
+<PageTitle>Admin Ventas</PageTitle>
+
+<div class="container py-4">
+    <h2 class="text-center mb-4">Pedidos de Clientes</h2>
+    <hr />
+
+    @if (isLoading)
+    {
+        <div class="d-flex justify-content-center mt-5">
+            <div class="spinner-border text-primary" role="status">
+                <span class="visually-hidden">Cargando pedidos...</span>
+            </div>
+        </div>
+    }
+    else if (pedidos == null || !pedidos.Any())
+    {
+        <div class="alert alert-info text-center mt-5">
+            No se encontraron pedidos.
+        </div>
+    }
+    else
+    {
+        @foreach (var pedido in pedidos)
+        {
+            <div class="card mb-4 shadow-sm">
+                <div class="card-header bg-dark text-white">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <div>
+                            <strong>Pedido #@pedido.Id</strong>
+                            <span class="ms-3">Fecha: @pedido.FechaPedido.ToShortDateString()</span>
+                        </div>
+                        <div>
+                            <strong>Total: @pedido.Total.ToString("C")</strong>
+                        </div>
+                    </div>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>Productos</h5>
+                            <ul class="list-group list-group-flush">
+                                @if (pedido.Detalles != null)
+                                {
+                                    @foreach (var detalle in pedido.Detalles)
+                                    {
+                                        <li class="list-group-item d-flex justify-content-between align-items-center">
+                                            <span>@detalle.Cantidad x @(detalle.Producto?.Nombre ?? "Producto no disponible")</span>
+                                            <span>@((detalle.Cantidad * detalle.PrecioUnitario).ToString("C"))</span>
+                                        </li>
+                                    }
+                                }
+                            </ul>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>Detalles de Envío</h5>
+                            <address class="mb-0">
+                                <p><strong>Usuario ID:</strong> @pedido.IdUsuario</p>
+                                <p><strong>Dirección:</strong> @pedido.Calle, @pedido.Sector</p>
+                                <p><strong>Ciudad:</strong> @pedido.Ciudad, @pedido.Provincia</p>
+                                <p><strong>Teléfono:</strong> @pedido.Telefono</p>
+                            </address>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    }
+</div>
+
+@code {
+    private List<Pedido>? pedidos;
+    private bool isLoading = true;
+
+    protected override async Task OnInitializedAsync()
+    {
+        try
+        {
+            pedidos = await PedidoService.ListarTodosLosPedidosAsync();
+        }
+        catch (Exception ex)
+        {
+            // Opcional: Manejar o registrar el error
+            pedidos = new List<Pedido>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
+    }
+}

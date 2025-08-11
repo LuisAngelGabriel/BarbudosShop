@@ -2,6 +2,7 @@
 @using BarbudosShop.Models
 @using BarbudosShop.Services
 @using Microsoft.AspNetCore.Components.Authorization
+@using BarbudosShop.Data
 @rendermode InteractiveServer
 @inject PedidoService PedidoService
 @inject NavigationManager NavigationManager
@@ -49,7 +50,7 @@
                             @foreach (var detalle in pedido.Detalles)
                             {
                                 <li class="list-group-item d-flex justify-content-between align-items-center">
-                                    <span>@detalle.Cantidad x @detalle.Producto?.Nombre</span>
+                                    <span>@detalle.Cantidad x @(detalle.Producto?.Nombre ?? "Producto no disponible")</span>
                                     <span>@((detalle.Cantidad * detalle.PrecioUnitario).ToString("C"))</span>
                                 </li>
                             }
@@ -94,14 +95,17 @@
             return;
         }
 
-        await CargarPedidos(idUsuario);
-    }
-
-    private async Task CargarPedidos(string idUsuario)
-    {
-        isLoading = true;
-        pedidos = await PedidoService.ListarPedidosPorUsuario(idUsuario);
-        isLoading = false;
-        StateHasChanged();
+        try
+        {
+            pedidos = await PedidoService.ListarPedidosPorUsuario(idUsuario);
+        }
+        catch
+        {
+            pedidos = new List<Pedido>();
+        }
+        finally
+        {
+            isLoading = false;
+        }
     }
 }
