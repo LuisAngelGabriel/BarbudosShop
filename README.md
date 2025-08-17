@@ -6,8 +6,7 @@ Semestre: 2025-02.
 
 Barbudos Shop - Mini manual
 
-
-Usuario: administrador@gmail.com 
+Usuario: admin@gmail.com 
 Contraseña: Admin2025#
 
 **¿Qué es Barbudos Shop?**
